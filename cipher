@@ -1,0 +1,14 @@
+def dechiffrer_cesar(texte_chiffre, decalage):
+    resultat = ""
+    for char in texte_chiffre:
+        if char.isalpha():
+            base = ord('A') if char.isupper() else ord('a')
+            resultat += chr((ord(char) - base - decalage) % 26 + base)
+        else:
+            resultat += char
+    return resultat
+
+# Exemple d'utilisation
+texte = ""  # "Hello World" chiffré avec un décalage de 3
+decalage = 1
+print(dechiffrer_cesar(texte, decalage))
