@@ -1,0 +1,18 @@
+# requirements.txt – version corrigée
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+langchain==0.1.0
+langchain-groq==0.0.1
+groq==0.4.1
+
+httpx==0.26.0
+requests==2.31.0
+
+python-dotenv==1.0.0
+python-multipart==0.0.6
+
+pytest==7.4.3
+pytest-asyncio==0.21.1
