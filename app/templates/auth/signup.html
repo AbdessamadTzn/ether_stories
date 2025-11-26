@@ -1,0 +1,71 @@
+{% extends "base.html" %} {% block title %}Sign Up - Ether Stories{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card p-4 shadow-sm">
+      <h3 class="text-center mb-4">Create Account</h3>
+      <form id="signupForm">
+        <div class="mb-3">
+          <label class="form-label">Full Name</label>
+          <input
+            type="text"
+            class="form-control"
+            id="fullname"
+            placeholder="John Doe"
+          />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" id="email" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-control" id="password" required />
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-success">Sign Up</button>
+        </div>
+      </form>
+      <div id="alert" class="alert alert-danger mt-3 d-none"></div>
+      <p class="text-center mt-3">
+        Already have an account? <a href="/login">Login here</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document
+    .getElementById('signupForm')
+    .addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const fullname = document.getElementById('fullname').value;
+      const alertBox = document.getElementById('alert');
+
+      try {
+        const response = await fetch('/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+            full_name: fullname,
+          }),
+        });
+
+        if (response.ok) {
+          window.location.href = '/login?registered=true';
+        } else {
+          const data = await response.json();
+          alertBox.textContent = data.detail || 'Signup failed';
+          alertBox.classList.remove('d-none');
+        }
+      } catch (error) {
+        alertBox.textContent = 'Connection error';
+        alertBox.classList.remove('d-none');
+      }
+    });
+</script>
+{% endblock %}
