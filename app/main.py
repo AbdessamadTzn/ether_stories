@@ -1,41 +1,50 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from sqladmin import Admin, ModelView
+from pathlib import Path
 
 from app.db.session import engine, create_db_models
-from app.db.models import User
+# from app.db.models import User
 from app.api import auth
 
-# Lifecycle event to create tables on startup
+from app.web import routes as web_routes 
+
+from app.db.models import User, Story, Chapter
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Startup: Checking Database Tables...")
     create_db_models()
     yield
 
-app = FastAPI(title="Ether Stories Backend", lifespan=lifespan)
+app = FastAPI(title="Ether Stories API", lifespan=lifespan)
 
-# 1. Include Auth Routes
-app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+#Mount Static Files
+BASE_DIR = Path(__file__).resolve().parent
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
-# 2. Setup Admin Panel
-# Access this at http://localhost:8000/admin
+#Include Routers
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"]) # API
+app.include_router(web_routes.router)  # <--- CRITICAL: THIS ADDS THE UI ROUTES
+
+#Admin Panel
 admin = Admin(app, engine)
 
-# Customize how the User table looks in the Admin Panel
 class UserAdmin(ModelView, model=User):
-    column_list = [User.id, User.email, User.role, User.is_active]
-    column_searchable_list = [User.email, User.full_name]
+    column_list = [User.id, User.email, User.role]
     icon = "fa-solid fa-user"
-    name = "User"
-    name_plural = "Users"
+#Story View 
+class StoryAdmin(ModelView, model=Story):
+    column_list = [Story.id, Story.title, Story.status, Story.user_id]
+    column_searchable_list = [Story.title]
+    icon = "fa-solid fa-book"
 
+#Chapter View
+class ChapterAdmin(ModelView, model=Chapter):
+    column_list = [Chapter.id, Chapter.story_id, Chapter.chapter_number, Chapter.title, Chapter.status]
+    icon = "fa-solid fa-file-lines"
+
+# Add views to admin
 admin.add_view(UserAdmin)
-
-@app.get("/")
-def root():
-    return {
-        "message": "Ether Stories API is running",
-        "docs_url": "http://localhost:8000/docs",
-        "admin_panel": "http://localhost:8000/admin"
-    }
+admin.add_view(StoryAdmin)
+admin.add_view(ChapterAdmin)
