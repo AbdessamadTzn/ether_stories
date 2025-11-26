@@ -1,17 +1,20 @@
-{% extends "base.html" %}
-
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <div class="px-4 py-5 my-5 text-center">
-    <h1 class="display-5 fw-bold">Bienvenue sur Ether Stories</h1>
-    <div class="col-lg-6 mx-auto">
-      <p class="lead mb-4">
-        Créez des histoires magiques pour vos enfants grâce à l'intelligence artificielle.
-        Narration, illustrations et audio générés en quelques secondes.
-      </p>
-      <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-        <a href="/create" class="btn btn-primary btn-lg px-4 gap-3">Créer une histoire</a>
-        <a href="/login" class="btn btn-outline-secondary btn-lg px-4">Se connecter</a>
-      </div>
+  <h1 class="display-5 fw-bold">Bienvenue sur Ether Stories</h1>
+  <div class="col-lg-6 mx-auto">
+    <p class="lead mb-4">
+      Créez des histoires magiques pour vos enfants grâce à l'intelligence
+      artificielle. Narration, illustrations et audio générés en quelques
+      secondes.
+    </p>
+    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+      <a href="/create" class="btn btn-primary btn-lg px-4 gap-3"
+        >Créer une histoire</a
+      >
+      <a href="/login" class="btn btn-outline-secondary btn-lg px-4"
+        >Se connecter</a
+      >
     </div>
   </div>
+</div>
 {% endblock %}

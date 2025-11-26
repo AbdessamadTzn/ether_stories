@@ -1,0 +1,51 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mt-5">
+  <div class="text-center mb-5">
+    <h1 class="display-4">{{ story.plan.plan.titre }}</h1>
+    <p class="lead text-muted">
+      {{ story.plan.plan.type_histoire }} • {{ story.plan.plan.duree_estimee }}
+      min
+    </p>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      {% for chapter in story.generated_chapters %}
+      <div class="card mb-5 shadow-sm border-0">
+        {% if chapter.image_path %}
+        <img
+          src="{{ chapter.image_path }}"
+          class="card-img-top"
+          alt="Illustration Chapitre {{ chapter.numero }}"
+        />
+        {% endif %}
+
+        <div class="card-body p-4">
+          <h3 class="card-title">
+            Chapitre {{ chapter.numero }}: {{ chapter.titre }}
+          </h3>
+          <p class="card-text lead" style="line-height: 1.8">
+            {{ chapter.contenu | replace('\n', '<br />') | safe }}
+          </p>
+
+          {% if chapter.audio_path %}
+          <div class="mt-4">
+            <audio controls class="w-100">
+              <source src="{{ chapter.audio_path }}" type="audio/mpeg" />
+              Votre navigateur ne supporte pas l'audio.
+            </audio>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <div class="text-center mb-5">
+        <a href="/create" class="btn btn-outline-primary btn-lg"
+          >Créer une autre histoire</a
+        >
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
