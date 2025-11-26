@@ -1,0 +1,130 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mt-5">
+  <h1 class="text-center mb-4">Créer une Histoire Magique</h1>
+
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-body">
+          <form id="storyForm">
+            <div class="mb-3">
+              <label for="age" class="form-label">Âge de l'enfant</label>
+              <input
+                type="number"
+                class="form-control"
+                id="age"
+                value="6"
+                min="3"
+                max="12"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="topic" class="form-label">Sujet / Mots-clés</label>
+              <input
+                type="text"
+                class="form-control"
+                id="topic"
+                placeholder="Ex: Dinosaures, Espace, Licorne..."
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="moral" class="form-label">Morale (Optionnel)</label>
+              <input
+                type="text"
+                class="form-control"
+                id="moral"
+                value="Amitié et Courage"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="duration" class="form-label">Durée (minutes)</label>
+              <input
+                type="range"
+                class="form-range"
+                id="duration"
+                min="2"
+                max="10"
+                value="5"
+                oninput="this.nextElementSibling.value = this.value"
+              />
+              <output>5</output> minutes
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary btn-lg">
+                ✨ Générer l'Histoire
+              </button>
+            </div>
+          </form>
+
+          <div id="loading" class="text-center mt-4 d-none">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">
+              Nos agents magiques écrivent votre histoire...
+              <span id="progress"></span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('storyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const btn = e.target.querySelector('button');
+    const loading = document.getElementById('loading');
+    const progress = document.getElementById('progress');
+
+    btn.disabled = true;
+    loading.classList.remove('d-none');
+
+    const age = document.getElementById('age').value;
+    const topic = document.getElementById('topic').value;
+    const moral = document.getElementById('moral').value;
+    const duration = document.getElementById('duration').value;
+
+    try {
+      // Start Generation
+      const response = await fetch(
+        `/api/story/generate?age=${age}&topic=${topic}&moral=${moral}&duration=${duration}`,
+        {
+          method: 'POST',
+        }
+      );
+      const data = await response.json();
+      const jobId = data.job_id;
+
+      // Poll Status
+      const interval = setInterval(async () => {
+        const statusRes = await fetch(`/api/story/status/${jobId}`);
+        const statusData = await statusRes.json();
+
+        if (statusData.status === 'completed') {
+          clearInterval(interval);
+          window.location.href = `/story/${jobId}`;
+        } else if (statusData.status === 'failed') {
+          clearInterval(interval);
+          alert('Erreur lors de la génération.');
+          btn.disabled = false;
+          loading.classList.add('d-none');
+        } else {
+          progress.innerText = `(Chapitres prêts: ${statusData.chapters_count})`;
+        }
+      }, 2000);
+    } catch (error) {
+      console.error(error);
+      alert('Erreur de connexion');
+      btn.disabled = false;
+      loading.classList.add('d-none');
+    }
+  });
+</script>
+{% endblock %}

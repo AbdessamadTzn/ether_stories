@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 text-center">
+    <div class="alert alert-danger shadow-sm" role="alert">
+        <h1 class="display-4">Oups !</h1>
+        <p class="lead">{{ message }}</p>
+        <hr>
+        <p class="mb-0">
+            <a href="/" class="btn btn-outline-danger">Retour à l'accueil</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
