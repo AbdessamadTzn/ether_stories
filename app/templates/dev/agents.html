@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Dev - Agents Tester{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-6">
+    <div class="card p-4 mb-4 shadow-sm">
+      <h4 class="mb-3">Speech-to-Text (S2T)</h4>
+      <form id="s2tForm">
+        <div class="mb-3">
+          <label class="form-label">Audio file</label>
+          <input type="file" id="audioFile" accept="audio/*" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Langue</label>
+          <select id="s2tLang" class="form-select">
+            <option value="fr" selected>FR</option>
+            <option value="en">EN</option>
+            <option value="ar">AR</option>
+          </select>
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">Transcrire</button>
+        </div>
+      </form>
+
+      <hr />
+
+      <h6>Réponse S2T</h6>
+      <pre id="s2tResult" class="small bg-light p-2" style="max-height: 300px; overflow: auto;"></pre>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card p-4 mb-4 shadow-sm">
+      <h4 class="mb-3">Manager - Créer Plan</h4>
+      <form id="managerForm">
+        <div class="mb-2">
+          <label class="form-label">Âge</label>
+          <input type="number" id="age" class="form-control" value="6" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Intérêts (virgules)</label>
+          <input type="text" id="interests" class="form-control" value="dragons, châteaux" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Peur / contraintes (virgules)</label>
+          <input type="text" id="peurs" class="form-control" value="méchants, orages" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Mots-clés</label>
+          <input type="text" id="keywords" class="form-control" value="dragon, princesse, forêt magique" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Moral</label>
+          <input type="text" id="moral" class="form-control" value="amitié et courage" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Type d'histoire</label>
+          <input type="text" id="type_histoire" class="form-control" value="aventure" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Durée (minutes)</label>
+          <input type="number" id="duree_minutes" class="form-control" value="10" />
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Personnage principal</label>
+          <input type="text" id="personnage" class="form-control" value="Léo le dragon" />
+        </div>
+
+        <div class="d-grid">
+          <button type="submit" class="btn btn-success">Créer plan</button>
+        </div>
+      </form>
+
+      <hr />
+
+      <h6>Réponse Manager</h6>
+      <pre id="managerResult" class="small bg-light p-2" style="max-height: 360px; overflow: auto;"></pre>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // fetch token (login page stores it as localStorage 'access_token')
+  const token = localStorage.getItem('access_token');
+
+  // S2T form
+  document.getElementById('s2tForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fileInput = document.getElementById('audioFile');
+    const lang = document.getElementById('s2tLang').value;
+    const resultBox = document.getElementById('s2tResult');
+    resultBox.textContent = 'Envoi...';
+
+    if (fileInput.files.length === 0) {
+      resultBox.textContent = 'Choisissez un fichier audio.';
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    fd.append('language', lang);
+
+    try {
+      const resp = await fetch('/api/s2t/transcribe', {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: fd
+      });
+
+      const data = await resp.json();
+      resultBox.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      resultBox.textContent = 'Erreur: ' + err.message;
+    }
+  });
+
+  // Manager form
+  document.getElementById('managerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const resultBox = document.getElementById('managerResult');
+    resultBox.textContent = 'Envoi...';
+
+    const payload = {
+      age: parseInt(document.getElementById('age').value || 6),
+      interests: (document.getElementById('interests').value || '').split(',').map(s => s.trim()).filter(Boolean),
+      peurs: (document.getElementById('peurs').value || '').split(',').map(s => s.trim()).filter(Boolean),
+      keywords: document.getElementById('keywords').value || '',
+      moral: document.getElementById('moral').value || '',
+      type_histoire: document.getElementById('type_histoire').value || 'aventure',
+      duree_minutes: parseInt(document.getElementById('duree_minutes').value || 10),
+      personnage: document.getElementById('personnage').value || ''
+    };
+
+    try {
+      const resp = await fetch('/api/manager/plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await resp.json();
+      resultBox.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      resultBox.textContent = 'Erreur: ' + err.message;
+    }
+  });
+</script>
+{% endblock %}

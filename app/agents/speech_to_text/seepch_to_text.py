@@ -1,194 +1,270 @@
 """
 Agent S2T (Speech-to-Text)
 Transcrit l'audio de l'enfant en mots-clés JSON
+Fichier adapté pour fonctionner sans GroqConfig : configuration locale et client Groq par agent.
 """
-import json
 from typing import Optional
-import get_transcription_prompt, get_post_processing_instructions
+import json
+import os
+import re
+from groq import Groq
+from dotenv import load_dotenv
+
+# Prompt helper
+try:
+    from .speech_to_text_prompt import get_transcription_prompt, get_post_processing_instructions
+except Exception:
+    try:
+        from speech_to_text_prompt import get_transcription_prompt, get_post_processing_instructions
+    except Exception:
+        # Si le fichier de prompts n'est pas encore prêt, on fallback sur un prompt simple
+        def get_transcription_prompt() -> str:
+            return (
+                "Transcris l'audio d'un enfant en mots-clés et phrase complète. "
+                "Corrige les erreurs évidentes, conserve le langage enfantin."
+            )
+        def get_post_processing_instructions() -> str:
+            return "Renvoie une transcription claire et des mots-clés séparés par des virgules."
+
+load_dotenv()
+
+# Configuration locale (peut être override via .env)
+DEFAULT_MODEL = os.getenv("S2T_MODEL", "whisper-large-v3")
+DEFAULT_LANGUAGE = os.getenv("S2T_LANGUAGE", "fr")
+DEFAULT_TEMPERATURE = float(os.getenv("S2T_TEMPERATURE", "0.0"))
+
+API_KEY = os.getenv("GROQ_API_KEY")
+if not API_KEY:
+    raise RuntimeError("GROQ_API_KEY is required in environment for S2TAgent")
 
 class S2TAgent:
     """
-    Agent Speech-to-Text avec Whisper
-    
-    INPUT: Fichier audio (bytes)
-    OUTPUT: JSON {
-        "keywords": "dragon, princesse, château",
-        "transcription_raw": "transcription brute",
-        "confidence": "high/medium/low"
+    Agent Speech-to-Text avec Whisper (ou autre modèle configuré).
+    INPUT: Fichier audio (bytes ou path)
+    OUTPUT: dict {
+        "success": bool,
+        "keywords": str,
+        "transcription_raw": str,
+        "confidence": "high/medium/low",
+        "language": str
     }
     """
-    
     def __init__(self):
         self.name = "Agent S2T"
-        self.model = GroqConfig.get_model("s2t")
-        self.params = GroqConfig.get_params("s2t")
-        self.client = GroqConfig.get_client()
-        
-        print(f"✅ {self.name} initialisé")
-        print(f"   Modèle: {self.model}")
-    
+        self.model = DEFAULT_MODEL
+        self.params = {"temperature": DEFAULT_TEMPERATURE}
+        self.client = Groq(api_key=API_KEY)
+        print(f"✅ {self.name} initialisé | modèle: {self.model}")
+
     def transcribe_audio(
         self,
         audio_file,
-        language: str = "fr",
+        language: str = DEFAULT_LANGUAGE,
         extract_keywords: bool = True
     ) -> dict:
         """
-        Transcrire un fichier audio en texte
-        
-        Args:
-            audio_file: Fichier audio (UploadFile ou bytes)
-            language: Code langue (fr, en, etc.)
-            extract_keywords: Si True, extrait les mots-clés
-        
-        Returns:
-            dict {
-                "success": bool,
-                "keywords": str,
-                "transcription_raw": str,
-                "confidence": str,
-                "language": str
-            }
+        Transcrit l'audio et retourne un dict structuré.
+        - audio_file peut être :
+          - un chemin vers un fichier (str/Path)
+          - un objet bytes
+          - un file-like object (avec .read())
         """
         try:
-            print(f"\n{'='*60}")
-            print(f"🎤 {self.name} - Transcription audio")
-            print(f"{'='*60}")
-            print(f"🌍 Langue: {language}")
-            
-            # Transcrire avec Whisper
-            transcription = self.client.audio.transcriptions.create(
-                file=audio_file,
+            # Préparer le flux d'upload
+            file_param = None
+            if isinstance(audio_file, (str, os.PathLike)):
+                file_param = open(str(audio_file), "rb")
+            elif isinstance(audio_file, (bytes, bytearray)):
+                file_param = audio_file
+            elif hasattr(audio_file, "read"):
+                file_param = audio_file
+            else:
+                raise ValueError("audio_file must be a path, bytes, or file-like object")
+
+            # Prompt de contexte facultatif pour améliorer la transcription
+            prompt = get_transcription_prompt()
+
+            # Appel au client Groq (Whisper / speech-to-text)
+            resp = self.client.audio.transcriptions.create(
+                file=file_param,
                 model=self.model,
                 language=language,
+                prompt=prompt,
                 response_format="json",
-                temperature=self.params["temperature"]
+                temperature=self.params.get("temperature", 0.0),
             )
-            
-            raw_text = transcription.text
-            print(f"📝 Transcription brute: {raw_text}")
-            
-            # Extraire les mots-clés si demandé
+
+            # Extraire la transcription du résultat
+            raw_text = ""
+            if hasattr(resp, "text"):
+                raw_text = resp.text or ""
+            elif isinstance(resp, dict):
+                raw_text = resp.get("text", "") or resp.get("transcription", "") or ""
+            elif getattr(resp, "choices", None):
+                try:
+                    raw_text = resp.choices[0].message.content
+                except Exception:
+                    raw_text = str(resp)
+            else:
+                raw_text = str(resp)
+
+            raw_text = raw_text.strip()
+
+            keywords = ""
             if extract_keywords:
                 keywords = self._extract_keywords(raw_text)
             else:
                 keywords = raw_text
-            
-            # Évaluer la confiance (basé sur la longueur et cohérence)
+
             confidence = self._evaluate_confidence(raw_text)
-            
-            result = {
+
+            return {
                 "success": True,
                 "keywords": keywords,
                 "transcription_raw": raw_text,
                 "confidence": confidence,
-                "language": language
+                "language": language,
             }
-            
-            print(f"✅ Mots-clés extraits: {keywords}")
-            print(f"📊 Confiance: {confidence}")
-            print(f"{'='*60}\n")
-            
-            return result
-            
+
         except Exception as e:
-            error_msg = f"Erreur transcription: {str(e)}"
-            print(f"❌ {error_msg}")
             return {
                 "success": False,
-                "error": error_msg,
+                "error": str(e),
                 "keywords": "",
                 "transcription_raw": "",
-                "confidence": "error"
+                "confidence": "error",
+                "language": language
             }
-    
+        finally:
+            # Si on a ouvert un fichier en local, on ferme
+            try:
+                if isinstance(audio_file, (str, os.PathLike)) and 'file_param' in locals() and hasattr(file_param, "close"):
+                    file_param.close()
+            except Exception:
+                pass
+
     def _extract_keywords(self, text: str) -> str:
         """
-        Extraire les mots-clés pertinents du texte
-        
-        Args:
-            text: Transcription brute
-        
-        Returns:
-            Mots-clés séparés par des virgules
+        Extraction basique de mots-clés depuis la transcription.
+        - Nettoyage des "euh", "hmm"
+        - Découpage par ponctuation
+        - Heuristique simple : fréquence et longueur minimale
         """
-        try:
-            # Nettoyer le texte
-            text_clean = text.lower()
-            
-            # Supprimer les mots de remplissage
-            filler_words = ["euh", "hmm", "ben", "alors", "voilà", "et puis", "donc"]
-            for filler in filler_words:
-                text_clean = text_clean.replace(filler, "")
-            
-            # Utiliser Groq pour extraire les mots-clés structurés
-            prompt = f"""Extrait les mots-clés pertinents pour créer une histoire pour enfant.
+        if not text:
+            return ""
 
-TRANSCRIPTION: "{text}"
+        text_clean = text.lower()
+        # supprime interjections
+        fillers = ["euh", "hmm", "ben", "voilà", "heu", "alors", "oui", "non"]
+        for f in fillers:
+            text_clean = text_clean.replace(f, " ")
 
-INSTRUCTIONS:
-1. Identifie les personnages (dragon, princesse, etc.)
-2. Identifie les lieux (château, forêt, etc.)
-3. Identifie les objets/thèmes importants
-4. Ignore les mots de remplissage
+        # garder phrases, mais extraire tokens signifiants
+        tokens = re.split(r"[^\wàâéèêëîïôùûüç'-]+", text_clean)
+        tokens = [t.strip().strip("-'") for t in tokens if t and len(t) >= 3]
+        # compter fréquence
+        freq = {}
+        for t in tokens:
+            freq[t] = freq.get(t, 0) + 1
+        # ordre par fréquence
+        sorted_tokens = sorted(freq.items(), key=lambda kv: (-kv[1], kv[0]))
+        keywords = ", ".join([kv[0] for kv in sorted_tokens[:8]])
+        return keywords
 
-Réponds UNIQUEMENT en JSON:
-{{
-  "keywords": "mot1, mot2, mot3"
-}}
-"""
-            
-            response = self.client.chat.completions.create(
-                model=GroqConfig.MODELS["fast"],  # Utiliser le modèle rapide
-                messages=[
-                    {"role": "system", "content": "Tu es un expert en extraction de mots-clés pour histoires d'enfants."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3,
-                max_tokens=200,
-                response_format={"type": "json_object"}
-            )
-            
-            result = json.loads(response.choices[0].message.content)
-            return result.get("keywords", text_clean)
-            
-        except Exception as e:
-            print(f"⚠️  Extraction de mots-clés échouée, retour au texte nettoyé: {str(e)}")
-            return text_clean
-    
     def _evaluate_confidence(self, text: str) -> str:
         """
-        Évaluer la confiance de la transcription
-        
-        Args:
-            text: Texte transcrit
-        
-        Returns:
-            "high", "medium" ou "low"
+        Heuristique simple : longueur du texte -> confiance
         """
-        text_length = len(text.strip())
-        
-        if text_length == 0:
-            return "error"
-        elif text_length < 10:
+        if not text:
             return "low"
-        elif text_length < 50:
+        length = len(text.strip())
+        if length < 10:
+            return "low"
+        if length < 60:
             return "medium"
-        else:
-            return "high"
-    
+        return "high"
+
     def transcribe_to_json(self, audio_file) -> str:
-        """
-        Transcrire et retourner directement en JSON string
-        
-        Args:
-            audio_file: Fichier audio
-        
-        Returns:
-            JSON string
-        """
         result = self.transcribe_audio(audio_file)
         return json.dumps(result, ensure_ascii=False, indent=2)
 
-# Instance globale
+    def transcribe_and_create_story(
+        self,
+        audio_file,
+        age: int = 7,
+        interests: list = None,
+        peurs: list = None,
+        moral: str = "courage et amitié",
+        type_histoire: str = "aventure",
+        duree_minutes: int = 10,
+        personnage: str = "",
+        nom_enfant: Optional[str] = None,
+        manager_decides: bool = True  # <-- nouveau param: le Manager décide
+    ) -> dict:
+        """
+        Transcrit l'audio ET crée automatiquement le plan d'histoire.
+        Si manager_decides=True, le Manager recevra la transcription brute et choisira mots-clés / personnage.
+        """
+        # Import du Manager (lazy import pour éviter les dépendances circulaires)
+        try:
+            # Essayer import relatif (quand dans un package)
+            from ..manager.manager import manager_agent
+        except (ImportError, ValueError):
+            try:
+                # Essayer import absolu depuis agents
+                from agents.manager.manager import manager_agent
+            except ImportError:
+                try:
+                    # Essayer import direct (si dans le même dossier ou PYTHONPATH)
+                    from manager import manager_agent
+                except ImportError:
+                    raise ImportError(
+                        "Impossible d'importer manager_agent. "
+                        "Vérifiez que manager.py est accessible dans:\n"
+                        "- agents/manager/manager.py (import relatif)\n"
+                        "- ou via PYTHONPATH"
+                    )
+        
+        transcription_result = self.transcribe_audio(audio_file)
+        
+        if not transcription_result["success"]:
+            return {
+                "success": False,
+                "error": f"Échec de la transcription: {transcription_result.get('error', 'Erreur inconnue')}",
+                "transcription": transcription_result,
+                "story_plan": None
+            }
+        
+        keywords = transcription_result["keywords"]
+        raw_text = transcription_result["transcription_raw"]
+
+        # si on veut laisser le Manager décider, on ne force pas le personnage ici
+        if not manager_decides:
+            # fallback auto-personnage si l'utilisateur n'a rien fourni
+            if not personnage and keywords:
+                first_keyword = keywords.split(",")[0].strip()
+                personnage = first_keyword
+
+        # Appel du Manager en incluant la transcription brute
+        story_plan = manager_agent.create_story_plan(
+            age=age,
+            interests=interests or [],
+            peurs=peurs or [],
+            keywords=keywords,
+            moral=moral,
+            type_histoire=type_histoire,
+            duree_minutes=duree_minutes,
+            personnage=personnage,
+            nom_enfant=nom_enfant,
+            transcription_raw=raw_text,   # <-- transcription brute passée au Manager
+            manager_decides=manager_decides  # <-- si nécessaire
+        )
+        
+        return {
+            "success": True,
+            "transcription": transcription_result,
+            "story_plan": story_plan
+        }
+
+# Instance globale exportée (structure uniforme avec les autres agents)
 s2t_agent = S2TAgent()

@@ -1,0 +1,79 @@
+{
+  "plan": {
+    "titre": "L'aventure de la princesse et du vieux chat",
+    "type_histoire": "aventure",
+    "duree_estimee": 10,
+    "age_cible": 7,
+    "personnage_principal": "La princesse est une jeune fille courageuse et amicale qui aime les dragons. Elle vit dans un royaume lointain avec son vieux chat fidèle. Ensemble, ils partent en aventure pour sauver le royaume."
+  },
+  "chapitres": [
+    {
+      "numero": 1,
+      "titre": "La découverte du royaume en danger",
+      "resume": "Le royaume est menacé par un dragon qui a perdu son chemin. La princesse décide de partir à la recherche du dragon pour l'aider. Elle est accompagnée de son vieux chat fidèle. Ils commencent leur aventure dans la forêt enchantée.",
+      "duree_minutes": 2
+    },
+    {
+      "numero": 2,
+      "titre": "La rencontre avec le dragon",
+      "resume": "La princesse et le vieux chat rencontrent le dragon perdu. Le dragon est gentil et demande de l'aide pour retrouver son chemin. La princesse et le chat acceptent de l'aider. Ils découvrent que le dragon a des pouvoirs magiques.",
+      "duree_minutes": 2
+    },
+    {
+      "numero": 3,
+      "titre": "Le voyage à travers les montagnes",
+      "resume": "La princesse, le chat et le dragon voyagent à travers les montagnes pour atteindre la maison du dragon. Ils rencontrent des obstacles, mais le courage et l'amitié les aident à les surmonter. Le dragon utilise ses pouvoirs magiques pour les aider.",
+      "duree_minutes": 2
+    },
+    {
+      "numero": 4,
+      "titre": "La bataille contre les nuages sombres",
+      "resume": "Des nuages sombres menacent de détruire le royaume. La princesse, le chat et le dragon travaillent ensemble pour chasser les nuages. Le dragon utilise ses pouvoirs magiques pour éclaircir le ciel. La princesse et le chat utilisent leur courage pour aider.",
+      "duree_minutes": 2
+    },
+    {
+      "numero": 5,
+      "titre": "Le retour triomphal",
+      "resume": "La princesse, le chat et le dragon retournent au royaume en héros. Le royaume est sauvé grâce à leur courage et leur amitié. La princesse et le chat sont fêtés pour leur bravoure. Le dragon devient un ami du royaume.",
+      "duree_minutes": 2
+    }
+  ],
+  "morale": {
+    "valeur_principale": "courage et amitié",
+    "message": "Le courage et l'amitié peuvent aider à surmonter les obstacles et à sauver le jour. L'amitié avec des créatures différentes peut être très puissante.",
+    "integration": "La morale est intégrée à travers l'aventure de la princesse, du chat et du dragon, qui travaillent ensemble pour sauver le royaume."
+  },
+  "personnages": [
+    {
+      "nom": "La princesse",
+      "role": "principal",
+      "description": "La princesse est une jeune fille courageuse et amicale qui aime les dragons. Elle est déterminée et brave."
+    },
+    {
+      "nom": "Le vieux chat",
+      "role": "secondaire",
+      "description": "Le vieux chat est fidèle et intelligent. Il aide la princesse dans son aventure."
+    },
+    {
+      "nom": "Le dragon",
+      "role": "principal",
+      "description": "Le dragon est gentil et a des pouvoirs magiques. Il est perdu et a besoin de l'aide de la princesse et du chat."
+    }
+  ],
+  "elements_cles": {
+    "keywords_utilises": [
+      "dragon",
+      "magie",
+      "aventure"
+    ],
+    "interets_integres": [
+      "dragons",
+      "magie",
+      "aventure"
+    ],
+    "peurs_evitees": [
+      "noir",
+      "monstres"
+    ]
+  }
+}

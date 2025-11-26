@@ -3,6 +3,13 @@ from groq import Groq
 import os
 import re
 from dotenv import load_dotenv
+from pathlib import Path
+
+# try imports robustly (module vs script)
+try:
+    from ether_stories.app.agents.narrative_agent.painter import build_image_prompt, generer_image
+except Exception:
+    from agents.narrative_agent.painter import build_image_prompt, generer_image
 
 load_dotenv()
 
@@ -96,6 +103,21 @@ Réponds UNIQUEMENT avec ce JSON :
     return extract_json(raw)
 
 
+def _save_translated_image(chapter, trad: dict):
+    prompt_obj = build_image_prompt(
+        title=trad["chapter_header_translated"],
+        summary=trad["chapter_content_translated"][:250],  # court résumé pour prompt
+        characters=[c.get("nom") for c in chapter.get("characters", []) if isinstance(c, dict)],
+        age=chapter.get("target_age", None),
+        forbidden=chapter.get("forbidden_words", [])
+    )
+    out_dir = Path(__file__).resolve().parents[1] / "chapitres"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    img_path = out_dir / f"chapter_{chapter['chapter_number']}_translated.png"
+    generer_image(prompt_obj, img_path)
+    return str(img_path)
+
+
 if __name__ == "__main__":
     with open("output.json", "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -104,6 +126,7 @@ if __name__ == "__main__":
 
     for chapter in chapitres:
         trad = traduire_chapitre(chapter, langue_cible="chinese")
+        img_path = _save_translated_image(chapter, trad)
 
         print(f"\n===== Traduction du chapitre {chapter['chapter_number']} =====\n")
 
