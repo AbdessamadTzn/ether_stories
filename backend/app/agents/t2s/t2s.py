@@ -1,46 +1,51 @@
-import sys
-sys.stdout.reconfigure(encoding='utf-8')
-
-import os
 import json
-from groq import Groq
+import asyncio
+from pathlib import Path
+from elevenlabs import AsyncElevenLabs
+import config  # <- on importe le fichier config
 
-# Charger le JSON
+# ----------------------------------------------------------------------
+# 1. Config API (async)
+# ----------------------------------------------------------------------
+client = AsyncElevenLabs(api_key=config.API_KEY)
+VOICE_ID = config.VOICE_ID
+
+# ----------------------------------------------------------------------
+# 2. Charger le JSON
+# ----------------------------------------------------------------------
 with open("output.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+# ----------------------------------------------------------------------
+# 3. Fonction ASYNC pour générer l’audio d’un chapitre
+# ----------------------------------------------------------------------
+async def generate_chapter_audio(chapter):
+    chapter_num = chapter["chapter_number"]
+    chapter_title = chapter["title"]
+    text = chapter["story_text"]
+    out_path = Path("audio") / f"chapter_{chapter_num}.wav"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"--- Lancement Chapitre {chapter_num}: {chapter_title} ---")
+    async with client.text_to_speech.with_raw_response.convert(
+        text=text,
+        voice_id=VOICE_ID,
+        model_id="eleven_flash_v2",
+    ) as response:
+        audio_bytes = b"".join([chunk async for chunk in response.data])
+        with open(out_path, "wb") as f:
+            f.write(audio_bytes)
+    print(f"Audio chapitre sauvegardé : {out_path}")
 
-# Forcer la langue de l'audio
-langue_audio = "Français"
+# ----------------------------------------------------------------------
+# 4. Pipeline async pour tous les chapitres (PARALLÈLE)
+# ----------------------------------------------------------------------
+async def main():
+    tasks = [asyncio.create_task(generate_chapter_audio(chapter)) for chapter in data["chapitres"]]
+    await asyncio.gather(*tasks)
+    print("\nTous les chapitres ont été synthétisés en parallèle !")
 
-# 🔹 Concaténer tout le texte des chapitres
-full_text = ""
-for chapitre in data["chapitres"]:
-    title = chapitre.get("title", "")
-    story_text = chapitre.get("story_text", "")
-    full_text += f"{title}\n\n{story_text}\n\n--- Chapitre suivant ---\n\n"
-
-# Choix du modèle selon la langue
-if langue_audio.lower() in ["français", "arabe"]:
-    model = "playai-tts-arabic"
-    voice = "Nasser-PlayAI"
-else:
-    model = "playai-tts"
-    voice = "Arista-PlayAI"
-
-print(f"Modèle choisi : {model} | Voix : {voice}")
-
-# Nom du fichier audio unique
-speech_file_path = "all_chapters.wav"
-
-# TTS sur tout le texte concaténé
-response = client.audio.speech.create(
-    model=model,
-    voice=voice,
-    input=full_text,
-    response_format="wav"
-)
-
-response.write_to_file(speech_file_path)
-print(f"Audio généré pour tous les chapitres -> {speech_file_path}")
+# ----------------------------------------------------------------------
+# 5. Lancer asyncio
+# ----------------------------------------------------------------------
+if __name__ == "__main__":
+    asyncio.run(main())

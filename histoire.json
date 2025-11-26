@@ -1,0 +1,32 @@
+{
+  "book": {
+    "title": "The Hidden Lantern",
+    "chapters": [
+      {
+        "number": 1,
+        "title": "Chapter 1: The Discovery",
+        "text": "As Emma brushed aside the thick curtain of cobwebs, she uncovered a lantern unlike anything she had ever seen. Its glass shimmered with an inner glow, as if holding a tiny galaxy trapped inside."
+      },
+      {
+        "number": 2,
+        "title": "Chapter 2: A Strange Light",
+        "text": "Later that night, the lantern pulsed softly on her desk. Emma watched in awe as the glow brightened and cast swirling patterns across the walls, whispering a language she could almost understand."
+      },
+      {
+        "number": 3,
+        "title": "Chapter 3: The Map Revealed",
+        "text": "When Emma touched the lantern, a burst of light projected a floating map into the air. Mountains, forests, and unknown symbols marked a path leading far beyond her village."
+      },
+      {
+        "number": 4,
+        "title": "Chapter 4: Into the Forest",
+        "text": "With the lantern tucked safely into her bag, Emma stepped into the ancient forest. The trees seemed to recognize her presence, bending slightly as though guiding her deeper into the shadows."
+      },
+      {
+        "number": 5,
+        "title": "Chapter 5: The First Guardian",
+        "text": "At the heart of the forest, a massive stone creature awakened. Its eyes glowed with the same light as the lantern. Emma raised the lantern, and the guardian bowed, clearing the path ahead."
+      }
+    ]
+  }
+}
