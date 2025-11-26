@@ -22,7 +22,7 @@ class User(SQLModel, table=True):
 
 # Schema for SIGN UP
 class UserCreate(SQLModel):
-    full_name: str
+    full_name: str = None
     email: str 
     password: str
 
@@ -30,5 +30,5 @@ class UserCreate(SQLModel):
 class UserRead(SQLModel):
     id: int
     email: str
-    full_name: str
+    full_name: str = None
     role: UserRole
