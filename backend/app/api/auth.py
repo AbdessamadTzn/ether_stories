@@ -14,7 +14,6 @@ def signup(user: UserCreate, session: Session = Depends(get_session)):
     statement = select(User).where(User.email == user.email)
     existing_user = session.exec(statement).first()
     if existing_user:
-        # FIX 1: Fixed typo "registred" -> "registered"
         raise HTTPException(status_code=400, detail="Email already registered")
     
     # Create new user
@@ -29,14 +28,13 @@ def signup(user: UserCreate, session: Session = Depends(get_session)):
     session.refresh(db_user)
     return db_user
 
-# 2. Login Endpoint
 @router.post("/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
-    # OAuth2PasswordRequestForm stores email in 'username' field
+
     statement = select(User).where(User.email == form_data.username)
     user = session.exec(statement).first()
     
-    # FIX 2: Changed 'hashed_password' to 'user.hashed_password'
+
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
