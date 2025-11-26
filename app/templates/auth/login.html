@@ -1,0 +1,60 @@
+{% extends "base.html" %} {% block title %}Login - Ether Stories{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-4">
+    <div class="card p-4 shadow-sm">
+      <h3 class="text-center mb-4">Welcome Back</h3>
+      <form id="loginForm">
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" id="email" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-control" id="password" required />
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+      </form>
+      <div id="alert" class="alert alert-danger mt-3 d-none"></div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const alertBox = document.getElementById('alert');
+
+    // Prepare form data (OAuth2 expects form-data, not JSON)
+    const formData = new URLSearchParams();
+    formData.append('username', email); // OAuth2 standard uses 'username'
+    formData.append('password', password);
+
+    try {
+      const response = await fetch('/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token in localStorage
+        localStorage.setItem('access_token', data.access_token);
+        window.location.href = '/dashboard'; // Redirect on success
+      } else {
+        alertBox.textContent = data.detail || 'Login failed';
+        alertBox.classList.remove('d-none');
+      }
+    } catch (error) {
+      alertBox.textContent = 'Connection error';
+      alertBox.classList.remove('d-none');
+    }
+  });
+</script>
+{% endblock %}
