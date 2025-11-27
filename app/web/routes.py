@@ -210,11 +210,17 @@ async def get_story_status(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     
     # Return partial progress if available
-    return {
+    response = {
         "status": job["status"],
         "chapters_count": len(job.get("result", {}).get("generated_chapters", [])) if job.get("result") else 0,
         "story_id": job.get("story_id")
     }
+    
+    # Include user-friendly error message if job failed
+    if job["status"] == "failed" and job.get("error"):
+        response["error_message"] = job.get("error")
+    
+    return response
 
 @router.get("/story/{job_id}")
 async def view_story(
