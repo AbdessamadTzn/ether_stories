@@ -120,7 +120,10 @@
           window.location.href = `/story/${jobId}`;
         } else if (statusData.status === 'failed') {
           clearInterval(interval);
-          alert('Erreur lors de la génération.');
+          // Show user-friendly error message from backend
+          const errorMsg =
+            statusData.error_message || 'Erreur lors de la génération.';
+          alert(errorMsg);
           btn.disabled = false;
           loading.classList.add('d-none');
         } else {
