@@ -7,7 +7,7 @@ from app.db.session import create_db_models
 from app.api import auth
 
 from app.web import routes as web_routes
-from app.web import admin_routes  # Custom admin panel
+from app.web import admin_routes  # Admin panel
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
