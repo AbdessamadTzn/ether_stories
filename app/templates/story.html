@@ -97,14 +97,30 @@
             {{ chapter.contenu | replace('\n', '<br />') | safe }}
           </p>
 
-          {% if chapter.audio_path %}
+          <!-- Audio Player Section -->
           <div class="mt-4">
-            <audio controls class="w-100">
-              <source src="{{ chapter.audio_path }}" type="audio/mpeg" />
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <button
+                type="button"
+                class="btn btn-outline-primary listen-btn"
+                data-chapter-id="{{ chapter.id }}"
+                data-lang="{{ current_lang or 'fr' }}"
+              >
+                🔊 Écouter
+              </button>
+              <span
+                class="audio-status text-muted small"
+                id="audio-status-{{ chapter.id }}"
+              ></span>
+            </div>
+            <audio
+              id="audio-player-{{ chapter.id }}"
+              controls
+              class="w-100 d-none"
+            >
               Votre navigateur ne supporte pas l'audio.
             </audio>
           </div>
-          {% endif %}
         </div>
       </div>
       {% endfor %}
@@ -122,8 +138,60 @@
 </div>
 
 <script>
-  // Get story ID from URL
-  const storyId = window.location.pathname.split('/').pop();
+  // Get story ID from URL or template variable
+  const storyId = '{{ story_id }}';
+  const currentLang = '{{ current_lang or "fr" }}';
+
+  // Listen button functionality
+  document.querySelectorAll('.listen-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      const chapterId = e.target.dataset.chapterId;
+      const lang = e.target.dataset.lang || currentLang;
+      const statusSpan = document.getElementById(`audio-status-${chapterId}`);
+      const audioPlayer = document.getElementById(`audio-player-${chapterId}`);
+
+      // Show loading state
+      e.target.disabled = true;
+      e.target.innerHTML = '⏳ Chargement...';
+      statusSpan.textContent = '';
+
+      try {
+        const response = await fetch(
+          `/api/chapter/${chapterId}/audio/${lang}`,
+          {
+            method: 'POST',
+            credentials: 'include',
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Show audio player
+          audioPlayer.src = data.audio_url;
+          audioPlayer.classList.remove('d-none');
+          audioPlayer.play();
+
+          // Update button
+          e.target.innerHTML = '🔊 Écouter';
+          e.target.disabled = false;
+
+          // Show cached status
+          if (data.cached) {
+            statusSpan.textContent = '(from cache)';
+          } else {
+            statusSpan.textContent = '✅ Generated!';
+          }
+        } else {
+          throw new Error(data.detail || 'Failed to generate audio');
+        }
+      } catch (error) {
+        e.target.innerHTML = '🔊 Écouter';
+        e.target.disabled = false;
+        statusSpan.innerHTML = `<span class="text-danger">❌ ${error.message}</span>`;
+      }
+    });
+  });
 
   // Translation functionality
   document.querySelectorAll('.translate-btn').forEach((btn) => {
