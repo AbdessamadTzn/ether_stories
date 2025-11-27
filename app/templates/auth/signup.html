@@ -1,18 +1,20 @@
-{% extends "base.html" %} {% block title %}Inscription - Ether Stories{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}Inscription - Ether Stories{%
+endblock %} {% block content %}
 <div class="row justify-content-center mt-4">
   <div class="col-md-5 col-lg-4">
     <div class="card shadow-lg">
       <div class="card-body p-4">
         <div class="text-center mb-4">
-          <span style="font-size: 3rem;">✨</span>
+          <span style="font-size: 3rem">✨</span>
           <h3 class="card-title mt-2">Rejoignez l'aventure !</h3>
           <p class="text-muted">Créez votre compte pour commencer</p>
         </div>
-        
+
         <form id="signupForm">
           <div class="mb-4">
-            <label class="form-label"><i class="bi bi-person"></i> Nom complet</label>
+            <label class="form-label"
+              ><i class="bi bi-person"></i> Nom complet</label
+            >
             <input
               type="text"
               class="form-control"
@@ -21,12 +23,28 @@
             />
           </div>
           <div class="mb-4">
-            <label class="form-label"><i class="bi bi-envelope"></i> Email</label>
-            <input type="email" class="form-control" id="email" placeholder="votre@email.com" required />
+            <label class="form-label"
+              ><i class="bi bi-envelope"></i> Email</label
+            >
+            <input
+              type="email"
+              class="form-control"
+              id="email"
+              placeholder="votre@email.com"
+              required
+            />
           </div>
           <div class="mb-4">
-            <label class="form-label"><i class="bi bi-lock"></i> Mot de passe</label>
-            <input type="password" class="form-control" id="password" placeholder="••••••••" required />
+            <label class="form-label"
+              ><i class="bi bi-lock"></i> Mot de passe</label
+            >
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              placeholder="••••••••"
+              required
+            />
           </div>
           <div class="d-grid">
             <button type="submit" class="btn btn-magical-secondary btn-lg">
@@ -34,9 +52,9 @@
             </button>
           </div>
         </form>
-        
+
         <div id="alert" class="alert alert-danger mt-3 d-none"></div>
-        
+
         <p class="text-center mt-4 mb-0">
           <span class="text-muted">Déjà un compte ?</span>
           <a href="/login" class="text-magical-gold fw-bold">Se connecter</a>
@@ -71,7 +89,7 @@
           window.location.href = '/login?registered=true';
         } else {
           const data = await response.json();
-          alertBox.textContent = data.detail || 'Échec de l\'inscription';
+          alertBox.textContent = data.detail || "Échec de l'inscription";
           alertBox.classList.remove('d-none');
         }
       } catch (error) {
