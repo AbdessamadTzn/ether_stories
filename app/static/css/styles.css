@@ -33,13 +33,13 @@ body {
 body {
   font-family: 'Quicksand', 'Segoe UI', sans-serif;
   background: linear-gradient(
-    135deg,
-    rgba(26, 26, 62, 0.85) 0%,
-    rgba(45, 45, 109, 0.85) 40%,
-    rgba(61, 61, 122, 0.85) 70%,
-    rgba(74, 58, 106, 0.85) 100%
-  ),
-  url('/static/images/dashboard_bg.png');
+      135deg,
+      rgba(26, 26, 62, 0.85) 0%,
+      rgba(45, 45, 109, 0.85) 40%,
+      rgba(61, 61, 122, 0.85) 70%,
+      rgba(74, 58, 106, 0.85) 100%
+    ),
+    url('/static/images/dashboard_bg.png');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
