@@ -92,13 +92,21 @@
     const duration = document.getElementById('duration').value;
 
     try {
-      // Start Generation
+      // Start Generation (cookies are sent automatically)
       const response = await fetch(
         `/api/story/generate?age=${age}&topic=${topic}&moral=${moral}&duration=${duration}`,
         {
           method: 'POST',
+          credentials: 'include', // Ensure cookies are sent
         }
       );
+
+      if (response.status === 401) {
+        alert('Session expirée. Veuillez vous reconnecter.');
+        window.location.href = '/login';
+        return;
+      }
+
       const data = await response.json();
       const jobId = data.job_id;
 

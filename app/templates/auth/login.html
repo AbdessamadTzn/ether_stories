@@ -44,9 +44,11 @@
       const data = await response.json();
 
       if (response.ok) {
-        // Store token in localStorage
+        // Store token in cookie (HttpOnly for security would be better via server)
+        document.cookie = `access_token=${data.access_token}; path=/; max-age=1800; SameSite=Strict`;
+        // Also store in localStorage for client-side checks
         localStorage.setItem('access_token', data.access_token);
-        window.location.href = '/dashboard'; // Redirect on success
+        window.location.href = '/create'; // Redirect to create page
       } else {
         alertBox.textContent = data.detail || 'Login failed';
         alertBox.classList.remove('d-none');
