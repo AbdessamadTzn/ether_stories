@@ -1,4 +1,10 @@
 {% extends "base.html" %} {% block content %}
+<style>
+  .magic-text-fade {
+    transition: opacity 0.5s ease-in-out;
+    opacity: 1;
+  }
+</style>
 <div class="container mt-4">
   <div class="text-center mb-4">
     <h1 class="display-5 text-magical-gold">
@@ -175,8 +181,11 @@
               <span class="visually-hidden">Loading...</span>
             </div>
             <p class="mt-3 text-magical-gold">
-              <i class="bi bi-magic"></i> Nos agents magiques écrivent votre
-              histoire...
+              <i class="bi bi-magic"></i>
+              <span id="magicText" class="magic-text-fade"
+                >Les Gardiens des Rêves sont en train d'écrire ton
+                histoire...</span
+              >
               <span id="progress" class="d-block mt-2"></span>
             </p>
           </div>
@@ -187,6 +196,40 @@
 </div>
 
 <script>
+  // Magical loading messages
+  const magicMessages = [
+    "Les Gardiens des Rêves sont en train d'écrire ton histoire...",
+    'Les Veilleurs des Songes chuchotent ton histoire dans la nuit...',
+    'Les Sentinelles de la Nuit écrivent ton histoire en secret...',
+  ];
+  let messageIndex = 0;
+  let messageInterval = null;
+
+  function startMagicMessages() {
+    const magicText = document.getElementById('magicText');
+    messageIndex = 0;
+    magicText.textContent = magicMessages[0];
+
+    messageInterval = setInterval(() => {
+      // Fade out
+      magicText.style.opacity = '0';
+
+      setTimeout(() => {
+        // Change text and fade in
+        messageIndex = (messageIndex + 1) % magicMessages.length;
+        magicText.textContent = magicMessages[messageIndex];
+        magicText.style.opacity = '1';
+      }, 500);
+    }, 4000);
+  }
+
+  function stopMagicMessages() {
+    if (messageInterval) {
+      clearInterval(messageInterval);
+      messageInterval = null;
+    }
+  }
+
   // State variables
   let inputMode = 'text'; // 'text' or 'voice'
   let mediaRecorder = null;
@@ -354,6 +397,7 @@
 
     btn.disabled = true;
     loading.classList.remove('d-none');
+    startMagicMessages();
 
     const age = document.getElementById('age').value;
     const topic =
@@ -394,21 +438,24 @@
 
         if (statusData.status === 'completed') {
           clearInterval(interval);
+          stopMagicMessages();
           window.location.href = `/story/${jobId}`;
         } else if (statusData.status === 'failed') {
           clearInterval(interval);
+          stopMagicMessages();
           const errorMsg =
             statusData.error_message || 'Erreur lors de la génération.';
           alert(errorMsg);
           btn.disabled = false;
           loading.classList.add('d-none');
         } else {
-          progress.innerText = `(Chapitres prêts: ${statusData.chapters_count})`;
+          progress.innerText = ``;
         }
       }, 2000);
     } catch (error) {
       console.error(error);
       alert('Erreur de connexion');
+      stopMagicMessages();
       btn.disabled = false;
       loading.classList.add('d-none');
     }

@@ -161,15 +161,14 @@
   // Listen button functionality
   document.querySelectorAll('.listen-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
-      // Use btn (the button) instead of e.target (could be the icon inside)
-      const chapterId = btn.dataset.chapterId;
-      const lang = btn.dataset.lang || currentLang;
+      const chapterId = e.target.dataset.chapterId;
+      const lang = e.target.dataset.lang || currentLang;
       const statusSpan = document.getElementById(`audio-status-${chapterId}`);
       const audioPlayer = document.getElementById(`audio-player-${chapterId}`);
 
       // Show loading state
-      btn.disabled = true;
-      btn.innerHTML = '⏳ Chargement...';
+      e.target.disabled = true;
+      e.target.innerHTML = '⏳ Chargement...';
       statusSpan.textContent = '';
 
       try {
@@ -190,21 +189,21 @@
           audioPlayer.play();
 
           // Update button
-          btn.innerHTML = '<i class="bi bi-volume-up"></i> Écouter';
-          btn.disabled = false;
+          e.target.innerHTML = '🔊 Écouter';
+          e.target.disabled = false;
 
           // Show cached status
           if (data.cached) {
-            statusSpan.textContent = '(from cache)';
+            statusSpan.textContent = '';
           } else {
-            statusSpan.textContent = '✅ Generated!';
+            statusSpan.textContent = '';
           }
         } else {
           throw new Error(data.detail || 'Failed to generate audio');
         }
       } catch (error) {
-        btn.innerHTML = '<i class="bi bi-volume-up"></i> Écouter';
-        btn.disabled = false;
+        e.target.innerHTML = '🔊 Écouter';
+        e.target.disabled = false;
         statusSpan.innerHTML = `<span class="text-danger">❌ ${error.message}</span>`;
       }
     });
