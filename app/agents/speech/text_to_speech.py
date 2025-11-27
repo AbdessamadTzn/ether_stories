@@ -14,7 +14,7 @@ VOICE_MAP = {
 DEFAULT_VOICE = VOICE_MAP["fr"]
 
 # Model
-TTS_MODEL = "eleven_flash_v2_5"
+TTS_MODEL = "eleven_multilingual_v2"
 
 
 def generate_audio(text: str, chapter_num: int, lang: str = "fr") -> str:
