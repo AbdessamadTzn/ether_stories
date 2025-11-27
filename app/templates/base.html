@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Ether Stories{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+    />
+    <link href="/static/css/styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <!-- Magical stars background -->
+    <div class="stars-container">
+      <div class="star star-1"></div>
+      <div class="star star-2"></div>
+      <div class="star star-3"></div>
+      <div class="star star-4"></div>
+      <div class="star star-5"></div>
+      <div class="star star-6"></div>
+      <div class="star star-7"></div>
+      <div class="star star-8"></div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-magical">
+      <div class="container">
+        <a class="navbar-brand" href="/">
+          <span class="brand-icon">✨</span> Ether Stories
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto" id="navbarLinks">
+            <!-- Dynamic links added by JS when logged in -->
+          </ul>
+          <ul class="navbar-nav ms-auto" id="navbarUser">
+            <li class="nav-item">
+              <a class="nav-link" href="/login">Connexion</a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link btn btn-magical-primary text-white ms-2"
+                href="/signup"
+                >S'inscrire</a
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container main-content">{% block content %}{% endblock %}</div>
+
+    <!-- Modals Block - rendered outside main-content for proper z-index -->
+    {% block modals %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="footer-magical">
+      <div class="container text-center">
+        <p class="mb-0">✨ Made with magic for little dreamers ✨</p>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Check if user is logged in and update navbar
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+      }
+
+      // Decode JWT to get user role (simple base64 decode of payload)
+      function decodeJWT(token) {
+        try {
+          const payload = token.split('.')[1];
+          return JSON.parse(atob(payload));
+        } catch (e) {
+          return null;
+        }
+      }
+
+      const token = getCookie('access_token');
+      if (token) {
+        const decoded = decodeJWT(token);
+        const isAdmin = decoded && decoded.role === 'admin';
+
+        // User is logged in - add navigation links
+        const navbarLinks = document.getElementById('navbarLinks');
+        let linksHtml = `
+          <li class="nav-item">
+            <a class="nav-link" href="/create"><i class="bi bi-magic"></i> Créer une histoire</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/my-stories"><i class="bi bi-book"></i> Mes Histoires</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/carbon-dashboard"><i class="bi bi-leaf"></i> CO₂</a>
+          </li>
+        `;
+
+        // Add admin link if user is admin
+        if (isAdmin) {
+          linksHtml += `
+            <li class="nav-item">
+              <a class="nav-link text-warning" href="/admin"><i class="bi bi-shield-lock"></i> Admin</a>
+            </li>
+          `;
+        }
+
+        navbarLinks.innerHTML = linksHtml;
+
+        const navbarUser = document.getElementById('navbarUser');
+        navbarUser.innerHTML = `
+          <li class="nav-item">
+            <span class="nav-link user-badge"><i class="bi bi-person-circle"></i> ${
+              isAdmin ? '👑 Admin' : 'Connecté'
+            }</span>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link btn btn-outline-magical ms-2" href="#" onclick="logout()">Déconnexion</a>
+          </li>
+        `;
+      }
+
+      function logout() {
+        document.cookie = 'access_token=; path=/; max-age=0';
+        localStorage.removeItem('access_token');
+        window.location.href = '/';
+      }
+    </script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

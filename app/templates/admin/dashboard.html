@@ -1,0 +1,338 @@
+{% extends "base.html" %} {% block title %}Admin Dashboard - Ether Stories{%
+endblock %} {% block content %}
+<div class="container-fluid mt-4">
+  <!-- Admin Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="display-6 text-magical-gold">
+        <i class="bi bi-shield-lock"></i> Admin Dashboard
+      </h1>
+      <p class="text-muted">Gérez votre plateforme Ether Stories</p>
+    </div>
+    <div class="btn-group">
+      <a href="/admin/users" class="btn btn-outline-primary">
+        <i class="bi bi-people"></i> Utilisateurs
+      </a>
+      <a href="/admin/stories" class="btn btn-outline-info">
+        <i class="bi bi-book"></i> Histoires
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats Cards Row -->
+  <div class="row g-4 mb-5">
+    <!-- Total Users -->
+    <div class="col-md-3">
+      <div
+        class="card h-100"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div class="card-body text-center">
+          <i
+            class="bi bi-people"
+            style="font-size: 2.5rem; color: var(--magic-cyan)"
+          ></i>
+          <h2 class="display-5 text-magical-gold mt-2">
+            {{ stats.total_users }}
+          </h2>
+          <p class="text-muted mb-0">Utilisateurs</p>
+          <small class="text-success"
+            >+{{ stats.new_users_week }} cette semaine</small
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Stories -->
+    <div class="col-md-3">
+      <div
+        class="card h-100"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div class="card-body text-center">
+          <i
+            class="bi bi-book"
+            style="font-size: 2.5rem; color: var(--magic-pink)"
+          ></i>
+          <h2 class="display-5 text-magical-gold mt-2">
+            {{ stats.total_stories }}
+          </h2>
+          <p class="text-muted mb-0">Histoires</p>
+          <small class="text-info">{{ stats.stories_today }} aujourd'hui</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total CO2 -->
+    <div class="col-md-3">
+      <div
+        class="card h-100"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div class="card-body text-center">
+          <i class="bi bi-cloud" style="font-size: 2.5rem; color: #00c853"></i>
+          <h2 class="display-5 text-magical-gold mt-2">
+            {{ "%.2f"|format(stats.total_co2_grams) }}
+          </h2>
+          <p class="text-muted mb-0">grammes CO₂</p>
+          <small class="text-warning">Total plateforme</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Operations -->
+    <div class="col-md-3">
+      <div
+        class="card h-100"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div class="card-body text-center">
+          <i
+            class="bi bi-activity"
+            style="font-size: 2.5rem; color: var(--magic-gold)"
+          ></i>
+          <h2 class="display-5 text-magical-gold mt-2">
+            {{ stats.total_operations }}
+          </h2>
+          <p class="text-muted mb-0">Opérations IA</p>
+          <small class="text-muted">Génération, TTS, etc.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Top Users by Stories -->
+    <div class="col-md-6">
+      <div
+        class="card"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div
+          class="card-header"
+          style="
+            background: rgba(255, 215, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
+          <h5 class="mb-0 text-magical-gold">
+            <i class="bi bi-trophy"></i> Top Utilisateurs (par histoires)
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if stats.top_users %}
+          <div class="table-responsive">
+            <table class="table table-dark table-hover">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Email</th>
+                  <th>Histoires</th>
+                  <th>CO₂</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in stats.top_users %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    <span class="badge bg-primary">{{ user.story_count }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-success"
+                      >{{ "%.3f"|format(user.co2_grams) }}g</span
+                    >
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <p class="text-muted text-center py-4">Pas encore de données</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="col-md-6">
+      <div
+        class="card"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div
+          class="card-header"
+          style="
+            background: rgba(255, 215, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
+          <h5 class="mb-0 text-magical-gold">
+            <i class="bi bi-clock-history"></i> Activité Récente
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if stats.recent_stories %}
+          <div class="list-group list-group-flush">
+            {% for story in stats.recent_stories %}
+            <div
+              class="list-group-item d-flex justify-content-between align-items-center"
+              style="
+                background: transparent;
+                border-color: rgba(255, 215, 0, 0.1);
+              "
+            >
+              <div>
+                <strong class="text-magical-gold"
+                  >{{ story.title[:30] }}{% if story.title|length > 30 %}...{%
+                  endif %}</strong
+                >
+                <br />
+                <small class="text-muted"
+                  >{{ story.user_email }} • {{ story.created_at }}</small
+                >
+              </div>
+              <span
+                class="badge {% if story.status == 'completed' %}bg-success{% elif story.status == 'failed' %}bg-danger{% else %}bg-warning{% endif %}"
+              >
+                {{ story.status }}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted text-center py-4">Pas encore d'activité</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CO2 by Operation Type -->
+  <div class="row g-4 mt-4">
+    <div class="col-md-6">
+      <div
+        class="card"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div
+          class="card-header"
+          style="
+            background: rgba(255, 215, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
+          <h5 class="mb-0 text-magical-gold">
+            <i class="bi bi-pie-chart"></i> CO₂ par Type d'Opération
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if stats.co2_by_type %}
+          <div class="row text-center">
+            {% for op_type, data in stats.co2_by_type.items() %}
+            <div class="col-6 col-md-3 mb-3">
+              <div
+                class="p-3 rounded"
+                style="background: rgba(255, 215, 0, 0.1)"
+              >
+                {% if op_type == 'story_generation' %}
+                <i
+                  class="bi bi-book"
+                  style="font-size: 1.5rem; color: var(--magic-cyan)"
+                ></i>
+                <div class="small text-muted">Histoires</div>
+                {% elif op_type == 'translation' %}
+                <i
+                  class="bi bi-translate"
+                  style="font-size: 1.5rem; color: var(--magic-pink)"
+                ></i>
+                <div class="small text-muted">Traductions</div>
+                {% elif op_type == 'tts' %}
+                <i
+                  class="bi bi-volume-up"
+                  style="font-size: 1.5rem; color: #00c853"
+                ></i>
+                <div class="small text-muted">Audio</div>
+                {% else %}
+                <i
+                  class="bi bi-image"
+                  style="font-size: 1.5rem; color: var(--magic-gold)"
+                ></i>
+                <div class="small text-muted">Images</div>
+                {% endif %}
+                <div class="fw-bold text-magical-gold">
+                  {{ "%.3f"|format(data.emissions_grams) }}g
+                </div>
+                <small class="text-muted">{{ data.count }} ops</small>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted text-center py-4">Pas encore de données</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-md-6">
+      <div
+        class="card"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div
+          class="card-header"
+          style="
+            background: rgba(255, 215, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
+          <h5 class="mb-0 text-magical-gold">
+            <i class="bi bi-lightning"></i> Actions Rapides
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-3">
+            <a href="/admin/users" class="btn btn-outline-primary btn-lg">
+              <i class="bi bi-people"></i> Gérer les Utilisateurs
+            </a>
+            <a href="/admin/stories" class="btn btn-outline-info btn-lg">
+              <i class="bi bi-book"></i> Gérer les Histoires
+            </a>
+            <a href="/admin/logs" class="btn btn-outline-warning btn-lg">
+              <i class="bi bi-journal-text"></i> Voir les Logs
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

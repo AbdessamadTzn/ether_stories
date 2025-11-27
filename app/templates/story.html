@@ -1,0 +1,259 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mt-4">
+  <!-- Story Header -->
+  <div class="text-center mb-5">
+    <h1 class="display-4 text-magical-gold">{{ story.plan.plan.titre }}</h1>
+    <div class="d-flex justify-content-center gap-2 flex-wrap mt-3">
+      <span class="badge bg-primary">{{ story.plan.plan.type_histoire }}</span>
+      <span class="badge bg-info"
+        ><i class="bi bi-clock"></i> {{ story.plan.plan.duree_estimee }}
+        min</span
+      >
+    </div>
+
+    <!-- Language Viewing Controls -->
+    {% if available_translations %}
+    <div class="mt-4">
+      <span class="badge bg-secondary me-2 fs-6">
+        {% if current_lang %} {% if current_lang == 'en' %}<i
+          class="bi bi-globe"
+        ></i>
+        English {% elif current_lang == 'ar' %}<i class="bi bi-globe"></i>
+        Arabic {% elif current_lang == 'zh' %}<i class="bi bi-globe"></i>
+        Chinese {% elif current_lang == 'es' %}<i class="bi bi-globe"></i>
+        Spanish {% elif current_lang == 'de' %}<i class="bi bi-globe"></i>
+        German {% elif current_lang == 'pt' %}<i class="bi bi-globe"></i>
+        Portuguese {% elif current_lang == 'ru' %}<i class="bi bi-globe"></i>
+        Russian {% elif current_lang == 'ja' %}<i class="bi bi-globe"></i>
+        Japanese {% elif current_lang == 'ko' %}<i class="bi bi-globe"></i>
+        Korean {% elif current_lang == 'it' %}<i class="bi bi-globe"></i>
+        Italian {% endif %} {% else %} 🇫🇷 Original (French) {% endif %}
+      </span>
+
+      <div class="btn-group" role="group">
+        <button
+          type="button"
+          class="btn btn-sm btn-primary dropdown-toggle"
+          data-bs-toggle="dropdown"
+        >
+          <i class="bi bi-book"></i> Voir en
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="?">🇫🇷 Original (French)</a></li>
+          <li><hr class="dropdown-divider" /></li>
+          {% for lang in available_translations %}
+          <li>
+            <a class="dropdown-item" href="?lang={{ lang }}">
+              {% if lang == 'en' %}🇬🇧 English {% elif lang == 'ar' %}🇸🇦 Arabic
+              {% elif lang == 'zh' %}🇨🇳 Chinese {% elif lang == 'es' %}🇪🇸
+              Spanish {% elif lang == 'de' %}🇩🇪 German {% elif lang == 'pt' %}🇧🇷
+              Portuguese {% elif lang == 'ru' %}🇷🇺 Russian {% elif lang == 'ja'
+              %}🇯🇵 Japanese {% elif lang == 'ko' %}🇰🇷 Korean {% elif lang ==
+              'it' %}🇮🇹 Italian {% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Translation Controls -->
+    <div class="mt-3">
+      <div class="btn-group" role="group">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-magical dropdown-toggle"
+          data-bs-toggle="dropdown"
+        >
+          <i class="bi bi-translate"></i> Traduire
+        </button>
+        <ul class="dropdown-menu">
+          <li>
+            <a class="dropdown-item translate-btn" href="#" data-lang="en">
+              🇬🇧 English
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item translate-btn" href="#" data-lang="zh">
+              🇨🇳 Chinese
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="translationStatus" class="mt-3"></div>
+  </div>
+
+  <!-- Chapters -->
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      {% for chapter in story.generated_chapters %}
+      <div class="card chapter-card mb-5">
+        {% if chapter.image_path %}
+        <img
+          src="{{ chapter.image_path }}"
+          class="card-img-top"
+          alt="Illustration Chapitre {{ chapter.numero }}"
+          style="max-height: 400px; object-fit: cover"
+        />
+        {% endif %}
+
+        <div class="card-body p-4">
+          <h3 class="chapter-title">
+            <span class="badge bg-primary me-2">{{ chapter.numero }}</span>
+            {{ chapter.titre }}
+          </h3>
+          <p class="story-text mt-4" style="line-height: 2">
+            {{ chapter.contenu | replace('\n', '<br />') | safe }}
+          </p>
+
+          <!-- Audio Player Section -->
+          <div
+            class="mt-4 p-3 rounded-4"
+            style="background: rgba(255, 215, 0, 0.1)"
+          >
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <button
+                type="button"
+                class="btn btn-magical-secondary listen-btn"
+                data-chapter-id="{{ chapter.id }}"
+                data-lang="{{ current_lang or 'fr' }}"
+              >
+                <i class="bi bi-volume-up"></i> Écouter
+              </button>
+              <span
+                class="audio-status text-muted small"
+                id="audio-status-{{ chapter.id }}"
+              ></span>
+            </div>
+            <audio
+              id="audio-player-{{ chapter.id }}"
+              controls
+              class="w-100 d-none"
+            >
+              Votre navigateur ne supporte pas l'audio.
+            </audio>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Action Buttons -->
+      <div class="text-center mb-5">
+        <a href="/my-stories" class="btn btn-outline-magical btn-lg me-2">
+          <i class="bi bi-book"></i> Mes Histoires
+        </a>
+        <a href="/create" class="btn btn-magical-primary btn-lg">
+          <i class="bi bi-stars"></i> Créer une autre
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Get story ID from URL or template variable
+  const storyId = '{{ story_id }}';
+  const currentLang = '{{ current_lang or "fr" }}';
+
+  // Listen button functionality
+  document.querySelectorAll('.listen-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      const chapterId = e.target.dataset.chapterId;
+      const lang = e.target.dataset.lang || currentLang;
+      const statusSpan = document.getElementById(`audio-status-${chapterId}`);
+      const audioPlayer = document.getElementById(`audio-player-${chapterId}`);
+
+      // Show loading state
+      e.target.disabled = true;
+      e.target.innerHTML = '⏳ Chargement...';
+      statusSpan.textContent = '';
+
+      try {
+        const response = await fetch(
+          `/api/chapter/${chapterId}/audio/${lang}`,
+          {
+            method: 'POST',
+            credentials: 'include',
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Show audio player
+          audioPlayer.src = data.audio_url;
+          audioPlayer.classList.remove('d-none');
+          audioPlayer.play();
+
+          // Update button
+          e.target.innerHTML = '🔊 Écouter';
+          e.target.disabled = false;
+
+          // Show cached status
+          if (data.cached) {
+            statusSpan.textContent = '';
+          } else {
+            statusSpan.textContent = '';
+          }
+        } else {
+          throw new Error(data.detail || 'Failed to generate audio');
+        }
+      } catch (error) {
+        e.target.innerHTML = '🔊 Écouter';
+        e.target.disabled = false;
+        statusSpan.innerHTML = `<span class="text-danger">❌ ${error.message}</span>`;
+      }
+    });
+  });
+
+  // Translation functionality
+  document.querySelectorAll('.translate-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const lang = e.target.dataset.lang;
+      const statusDiv = document.getElementById('translationStatus');
+
+      statusDiv.innerHTML = `
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span class="ms-2">Translating to ${e.target.textContent}...</span>
+      `;
+
+      try {
+        const response = await fetch(
+          `/api/story/${storyId}/translate?lang=${lang}`,
+          {
+            method: 'POST',
+            credentials: 'include',
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          if (data.status === 'already_translated') {
+            statusDiv.innerHTML = `
+              <div class="alert alert-info">Already translated! Reload page to view.</div>
+            `;
+          } else {
+            statusDiv.innerHTML = `
+              <div class="alert alert-success">
+                Translation started! This may take 1-2 minutes. Refresh the page after completion.
+              </div>
+            `;
+          }
+        } else {
+          throw new Error(data.detail || 'Translation failed');
+        }
+      } catch (error) {
+        statusDiv.innerHTML = `
+          <div class="alert alert-danger">Error: ${error.message}</div>
+        `;
+      }
+    });
+  });
+</script>
+
+{% endblock %}

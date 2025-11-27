@@ -1,0 +1,95 @@
+{% extends "base.html" %} {% block title %}Connexion - Ether Stories{% endblock
+%} {% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow-lg">
+      <div class="card-body p-4">
+        <div class="text-center mb-4">
+          <span style="font-size: 3rem">🏰</span>
+          <h3 class="card-title mt-2">Bon retour !</h3>
+          <p class="text-muted">Connectez-vous pour continuer l'aventure</p>
+        </div>
+
+        <form id="loginForm">
+          <div class="mb-4">
+            <label class="form-label"
+              ><i class="bi bi-envelope"></i> Email</label
+            >
+            <input
+              type="email"
+              class="form-control"
+              id="email"
+              placeholder="votre@email.com"
+              required
+            />
+          </div>
+          <div class="mb-4">
+            <label class="form-label"
+              ><i class="bi bi-lock"></i> Mot de passe</label
+            >
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-magical-primary btn-lg">
+              <i class="bi bi-box-arrow-in-right"></i> Se connecter
+            </button>
+          </div>
+        </form>
+
+        <div id="alert" class="alert alert-danger mt-3 d-none"></div>
+
+        <p class="text-center mt-4 mb-0">
+          <span class="text-muted">Pas encore de compte ?</span>
+          <a href="/signup" class="text-magical-gold fw-bold"
+            >Créer un compte</a
+          >
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const alertBox = document.getElementById('alert');
+
+    // Prepare form data (OAuth2 expects form-data, not JSON)
+    const formData = new URLSearchParams();
+    formData.append('username', email); // OAuth2 standard uses 'username'
+    formData.append('password', password);
+
+    try {
+      const response = await fetch('/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token in cookie (HttpOnly for security would be better via server)
+        document.cookie = `access_token=${data.access_token}; path=/; max-age=1800; SameSite=Strict`;
+        // Also store in localStorage for client-side checks
+        localStorage.setItem('access_token', data.access_token);
+        window.location.href = '/create'; // Redirect to create page
+      } else {
+        alertBox.textContent = data.detail || 'Échec de la connexion';
+        alertBox.classList.remove('d-none');
+      }
+    } catch (error) {
+      alertBox.textContent = 'Erreur de connexion';
+      alertBox.classList.remove('d-none');
+    }
+  });
+</script>
+{% endblock %}

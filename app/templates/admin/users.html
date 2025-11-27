@@ -1,0 +1,410 @@
+{% extends "base.html" %} {% block title %}Gestion Utilisateurs - Admin{%
+endblock %} {% block content %}
+<div class="container-fluid mt-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="display-6 text-magical-gold">
+        <i class="bi bi-people"></i> Gestion des Utilisateurs
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a href="/admin" class="text-magical-gold">Admin</a>
+          </li>
+          <li class="breadcrumb-item active text-muted">Utilisateurs</li>
+        </ol>
+      </nav>
+    </div>
+    <a href="/admin" class="btn btn-outline-magical">
+      <i class="bi bi-arrow-left"></i> Retour
+    </a>
+  </div>
+
+  <!-- Stats Summary -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-center" style="background: rgba(45, 45, 109, 0.85)">
+        <div class="card-body py-3">
+          <h3 class="text-magical-gold mb-0">{{ stats.total }}</h3>
+          <small class="text-muted">Total</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center" style="background: rgba(45, 45, 109, 0.85)">
+        <div class="card-body py-3">
+          <h3 class="text-success mb-0">{{ stats.active }}</h3>
+          <small class="text-muted">Actifs</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center" style="background: rgba(45, 45, 109, 0.85)">
+        <div class="card-body py-3">
+          <h3 class="text-warning mb-0">{{ stats.admins }}</h3>
+          <small class="text-muted">Admins</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center" style="background: rgba(45, 45, 109, 0.85)">
+        <div class="card-body py-3">
+          <h3 class="text-info mb-0">{{ stats.new_this_week }}</h3>
+          <small class="text-muted">Cette semaine</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div
+    class="card"
+    style="
+      background: rgba(45, 45, 109, 0.85);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+    "
+  >
+    <div
+      class="card-header d-flex justify-content-between align-items-center"
+      style="background: rgba(255, 215, 0, 0.1)"
+    >
+      <h5 class="mb-0 text-magical-gold">Liste des Utilisateurs</h5>
+      <input
+        type="text"
+        class="form-control w-25"
+        id="searchUsers"
+        placeholder="🔍 Rechercher..."
+      />
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0" id="usersTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Email</th>
+              <th>Nom</th>
+              <th>Rôle</th>
+              <th>Histoires</th>
+              <th>CO₂</th>
+              <th>Inscrit le</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr data-user-id="{{ user.id }}">
+              <td>{{ user.id }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.full_name or '-' }}</td>
+              <td>
+                <span
+                  class="badge {% if user.role == 'admin' %}bg-danger{% elif user.role == 'writer' %}bg-info{% else %}bg-secondary{% endif %}"
+                >
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>
+                <span class="badge bg-primary">{{ user.story_count }}</span>
+              </td>
+              <td>
+                <span class="badge bg-success"
+                  >{{ "%.3f"|format(user.co2_grams) }}g</span
+                >
+              </td>
+              <td>{{ user.created_at[:10] }}</td>
+              <td>
+                {% if user.is_active %}
+                <span class="badge bg-success">Actif</span>
+                {% else %}
+                <span class="badge bg-danger">Inactif</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button
+                    class="btn btn-outline-info"
+                    onclick="viewUser({{ user.id }})"
+                    title="Voir"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button
+                    class="btn btn-outline-warning"
+                    onclick="editUser({{ user.id }})"
+                    title="Modifier"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  {% if user.role != 'admin' %}
+                  <button
+                    class="btn btn-outline-danger"
+                    onclick="deleteUser({{ user.id }}, '{{ user.email }}')"
+                    title="Supprimer"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block modals %}
+<!-- View User Modal -->
+<div class="modal fade" id="viewUserModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div
+      class="modal-content"
+      style="
+        background: rgba(30, 30, 80, 0.98);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+      "
+    >
+      <div class="modal-header" style="border-color: rgba(255, 215, 0, 0.2)">
+        <h5 class="modal-title text-magical-gold">
+          <i class="bi bi-person"></i> Détails Utilisateur
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body" id="viewUserContent">
+        <!-- Loaded via AJAX -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div
+      class="modal-content"
+      style="
+        background: rgba(30, 30, 80, 0.98);
+        border: 1px solid rgba(255, 215, 0, 0.3);
+      "
+    >
+      <div class="modal-header" style="border-color: rgba(255, 215, 0, 0.2)">
+        <h5 class="modal-title text-magical-gold">
+          <i class="bi bi-pencil"></i> Modifier Utilisateur
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="editUserForm">
+          <input type="hidden" id="editUserId" />
+          <div class="mb-3">
+            <label class="form-label text-light">Email</label>
+            <input
+              type="email"
+              class="form-control"
+              id="editUserEmail"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-light">Nom complet</label>
+            <input type="text" class="form-control" id="editUserName" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-light">Rôle</label>
+            <select class="form-select" id="editUserRole">
+              <option value="user">User</option>
+              <option value="writer">Writer</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="editUserActive"
+              />
+              <label class="form-check-label text-light">Compte actif</label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" style="border-color: rgba(255, 215, 0, 0.2)">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Annuler
+        </button>
+        <button
+          type="button"
+          class="btn btn-magical-primary"
+          onclick="saveUser()"
+        >
+          Sauvegarder
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  // Search filter
+  document
+    .getElementById('searchUsers')
+    .addEventListener('input', function (e) {
+      const search = e.target.value.toLowerCase();
+      document.querySelectorAll('#usersTable tbody tr').forEach((row) => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(search) ? '' : 'none';
+      });
+    });
+
+  // View user details
+  async function viewUser(userId) {
+    const modal = new bootstrap.Modal(document.getElementById('viewUserModal'));
+    document.getElementById('viewUserContent').innerHTML =
+      '<div class="text-center py-4"><div class="spinner-border"></div></div>';
+    modal.show();
+
+    try {
+      const response = await fetch(`/admin/api/user/${userId}`, {
+        credentials: 'include',
+      });
+      const data = await response.json();
+
+      document.getElementById('viewUserContent').innerHTML = `
+        <div class="row">
+          <div class="col-md-6">
+            <p><strong>Email:</strong> ${data.email}</p>
+            <p><strong>Nom:</strong> ${data.full_name || '-'}</p>
+            <p><strong>Rôle:</strong> <span class="badge ${
+              data.role === 'admin' ? 'bg-danger' : 'bg-secondary'
+            }">${data.role}</span></p>
+            <p><strong>Statut:</strong> ${
+              data.is_active
+                ? '<span class="badge bg-success">Actif</span>'
+                : '<span class="badge bg-danger">Inactif</span>'
+            }</p>
+          </div>
+          <div class="col-md-6">
+            <p><strong>Inscrit le:</strong> ${data.created_at}</p>
+            <p><strong>Histoires:</strong> ${data.story_count}</p>
+            <p><strong>CO₂ total:</strong> ${data.co2_grams.toFixed(4)}g</p>
+          </div>
+        </div>
+        <hr style="border-color: rgba(255, 215, 0, 0.2);">
+        <h6 class="text-magical-gold">Dernières Histoires</h6>
+        ${
+          data.recent_stories.length > 0
+            ? `
+          <ul class="list-group list-group-flush">
+            ${data.recent_stories
+              .map(
+                (s) => `
+              <li class="list-group-item" style="background: transparent; border-color: rgba(255, 215, 0, 0.1);">
+                ${s.title} <small class="text-muted">(${s.created_at})</small>
+              </li>
+            `
+              )
+              .join('')}
+          </ul>
+        `
+            : '<p class="text-muted">Aucune histoire</p>'
+        }
+      `;
+    } catch (error) {
+      document.getElementById('viewUserContent').innerHTML =
+        '<p class="text-danger">Erreur de chargement</p>';
+    }
+  }
+
+  // Edit user
+  async function editUser(userId) {
+    try {
+      const response = await fetch(`/admin/api/user/${userId}`, {
+        credentials: 'include',
+      });
+      const data = await response.json();
+
+      document.getElementById('editUserId').value = data.id;
+      document.getElementById('editUserEmail').value = data.email;
+      document.getElementById('editUserName').value = data.full_name || '';
+      document.getElementById('editUserRole').value = data.role;
+      document.getElementById('editUserActive').checked = data.is_active;
+
+      const modal = new bootstrap.Modal(
+        document.getElementById('editUserModal')
+      );
+      modal.show();
+    } catch (error) {
+      alert('Erreur de chargement');
+    }
+  }
+
+  // Save user
+  async function saveUser() {
+    const userId = document.getElementById('editUserId').value;
+    const data = {
+      email: document.getElementById('editUserEmail').value,
+      full_name: document.getElementById('editUserName').value,
+      role: document.getElementById('editUserRole').value,
+      is_active: document.getElementById('editUserActive').checked,
+    };
+
+    try {
+      const response = await fetch(`/admin/api/user/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        location.reload();
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + error.detail);
+      }
+    } catch (error) {
+      alert('Erreur de sauvegarde');
+    }
+  }
+
+  // Delete user
+  async function deleteUser(userId, email) {
+    if (
+      !confirm(
+        `Êtes-vous sûr de vouloir supprimer l'utilisateur ${email}?\n\nCette action supprimera également toutes ses histoires.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/admin/api/user/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        location.reload();
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + error.detail);
+      }
+    } catch (error) {
+      alert('Erreur de suppression');
+    }
+  }
+</script>
+{% endblock %}

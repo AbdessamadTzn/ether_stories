@@ -1,0 +1,177 @@
+{% extends "base.html" %} {% block title %}Mes Histoires - Ether Stories{%
+endblock %} {% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="display-5 text-magical-gold">
+      <i class="bi bi-book"></i> Mes Histoires
+    </h1>
+    <a href="/create" class="btn btn-magical-primary">
+      <i class="bi bi-stars"></i> Créer une nouvelle
+    </a>
+  </div>
+
+  {% if stories %}
+  <div class="row g-4">
+    {% for story in stories %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">{{ story.title }}</h5>
+          <p class="text-muted mb-2">
+            <small
+              ><i class="bi bi-calendar"></i> {{ story.created_at.strftime('%d
+              %B %Y') }}</small
+            >
+          </p>
+
+          {% if story.plan_data and story.plan_data.plan %}
+          <div class="d-flex gap-2 flex-wrap mb-3">
+            <span class="badge bg-primary"
+              >{{ story.plan_data.plan.type_histoire }}</span
+            >
+            <span class="badge bg-info"
+              ><i class="bi bi-clock"></i> {{ story.plan_data.plan.duree_estimee
+              }} min</span
+            >
+            <span class="badge bg-secondary"
+              ><i class="bi bi-person"></i> {{ story.plan_data.plan.age_cible
+              }}+ ans</span
+            >
+          </div>
+
+          {% if story.plan_data.chapitres %}
+          <p class="text-muted mb-3">
+            <small
+              ><i class="bi bi-journal-text"></i> {{
+              story.plan_data.chapitres|length }} chapitres</small
+            >
+          </p>
+          {% endif %} {% endif %}
+
+          <div class="d-grid gap-2">
+            <a href="/story/view/{{ story.id }}" class="btn btn-primary">
+              <i class="bi bi-book"></i> Lire l'histoire
+            </a>
+
+            <div class="btn-group" role="group">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                data-bs-toggle="dropdown"
+              >
+                <i class="bi bi-translate"></i> Traduire
+              </button>
+              <ul class="dropdown-menu">
+                <li>
+                  <a
+                    class="dropdown-item translate-story"
+                    href="#"
+                    data-story-id="{{ story.id }}"
+                    data-lang="en"
+                  >
+                    🇬🇧 English
+                  </a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item translate-story"
+                    href="#"
+                    data-story-id="{{ story.id }}"
+                    data-lang="zh"
+                  >
+                    🇨🇳 Chinese
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="card-footer"
+          style="
+            background: transparent;
+            border-top: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
+          <small>
+            Status:
+            <span
+              class="badge {% if story.status == 'COMPLETED' %}bg-success {% elif story.status == 'GENERATING' %}bg-warning {% elif story.status == 'FAILED' %}bg-danger {% else %}bg-secondary{% endif %}"
+            >
+              {% if story.status == 'COMPLETED' %}<i
+                class="bi bi-check-circle"
+              ></i>
+              {% elif story.status == 'GENERATING' %}<i
+                class="bi bi-hourglass-split"
+              ></i>
+              {% elif story.status == 'FAILED' %}<i class="bi bi-x-circle"></i>
+              {% endif %} {{ story.status }}
+            </span>
+          </small>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-5">
+    <div class="feature-card mx-auto" style="max-width: 400px">
+      <div class="feature-icon">📚</div>
+      <h3 class="feature-title">Pas encore d'histoires</h3>
+      <p class="feature-text">Créez votre première histoire magique !</p>
+      <a href="/create" class="btn btn-magical-primary btn-lg mt-3">
+        <i class="bi bi-stars"></i> Créer une histoire
+      </a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  // Translation functionality
+  document.querySelectorAll('.translate-story').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const storyId = e.target.dataset.storyId;
+      const lang = e.target.dataset.lang;
+      const langName = e.target.textContent.trim();
+
+      if (
+        !confirm(
+          `Traduire cette histoire en ${langName} ? Cela peut prendre 1-2 minutes.`
+        )
+      ) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/story/${storyId}/translate?lang=${lang}`,
+          {
+            method: 'POST',
+            credentials: 'include',
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          if (data.status === 'already_translated') {
+            alert(`Cette histoire est déjà traduite en ${langName} !`);
+          } else {
+            alert(
+              `Traduction en cours ! Revenez dans 1-2 minutes et rafraîchissez la page.`
+            );
+          }
+        } else {
+          throw new Error(data.detail || 'Translation failed');
+        }
+      } catch (error) {
+        alert(`Erreur: ${error.message}`);
+      }
+    });
+  });
+</script>
+
+{% endblock %}

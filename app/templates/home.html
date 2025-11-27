@@ -1,0 +1,61 @@
+{% extends "base.html" %} {% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+  <h1 class="hero-title">✨ Bienvenue sur Ether Stories ✨</h1>
+  <p class="hero-subtitle">
+    Créez des histoires magiques pour vos enfants grâce à l'intelligence
+    artificielle. Narration, illustrations et audio générés en quelques
+    secondes.
+  </p>
+  <div class="d-flex gap-3 justify-content-center flex-wrap">
+    <a href="/create" class="btn btn-magical-primary btn-lg px-5">
+      <i class="bi bi-magic"></i> Créer une histoire
+    </a>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div class="row g-4 mt-5 mb-5">
+  <div class="col-md-4">
+    <div class="feature-card h-100">
+      <div class="feature-icon">📖</div>
+      <h4 class="feature-title">Histoires Personnalisées</h4>
+      <p class="feature-text">
+        Des histoires uniques adaptées à l'âge et aux intérêts de votre enfant
+      </p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card h-100">
+      <div class="feature-icon">🎨</div>
+      <h4 class="feature-title">Illustrations Magiques</h4>
+      <p class="feature-text">
+        Chaque chapitre illustré par notre IA pour donner vie à l'aventure
+      </p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card h-100">
+      <div class="feature-icon">🔊</div>
+      <h4 class="feature-title">Narration Audio</h4>
+      <p class="feature-text">
+        Écoutez l'histoire en plusieurs langues : Français, Anglais, Chinois
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Call to Action -->
+<div class="text-center mt-5 mb-4">
+  <div class="feature-card mx-auto" style="max-width: 500px">
+    <div class="feature-icon">🏰</div>
+    <h4 class="feature-title">Prêt pour l'aventure ?</h4>
+    <p class="feature-text mb-3">
+      Laissez la magie opérer et créez des souvenirs inoubliables
+    </p>
+    <a href="/signup" class="btn btn-magical-secondary">
+      <i class="bi bi-rocket-takeoff"></i> Commencer maintenant
+    </a>
+  </div>
+</div>
+{% endblock %}
