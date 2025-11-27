@@ -71,6 +71,9 @@
 
     <div class="container main-content">{% block content %}{% endblock %}</div>
 
+    <!-- Modals Block - rendered outside main-content for proper z-index -->
+    {% block modals %}{% endblock %}
+
     <!-- Footer -->
     <footer class="footer-magical">
       <div class="container text-center">
@@ -115,7 +118,7 @@
             <a class="nav-link" href="/carbon-dashboard"><i class="bi bi-leaf"></i> CO₂</a>
           </li>
         `;
-        
+
         // Add admin link if user is admin
         if (isAdmin) {
           linksHtml += `
@@ -124,13 +127,15 @@
             </li>
           `;
         }
-        
+
         navbarLinks.innerHTML = linksHtml;
 
         const navbarUser = document.getElementById('navbarUser');
         navbarUser.innerHTML = `
           <li class="nav-item">
-            <span class="nav-link user-badge"><i class="bi bi-person-circle"></i> ${isAdmin ? '👑 Admin' : 'Connecté'}</span>
+            <span class="nav-link user-badge"><i class="bi bi-person-circle"></i> ${
+              isAdmin ? '👑 Admin' : 'Connecté'
+            }</span>
           </li>
           <li class="nav-item">
             <a class="nav-link btn btn-outline-magical ms-2" href="#" onclick="logout()">Déconnexion</a>
