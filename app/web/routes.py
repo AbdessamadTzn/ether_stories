@@ -3,18 +3,23 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from app.core.graph.workflow import story_graph
+from app.core.carbon import track_carbon, get_user_carbon_stats, get_story_carbon, CarbonTracker
+from app.core.logger import get_logger, log_story_event, log_error
+from app.db.models import User, Story, Chapter, StoryStatus, ChapterStatus, OperationType
 from typing import Optional
 from jose import jwt, JWTError
 from app.core.config import settings
 from app.db.session import get_session
-from app.db.models import User, Story, Chapter, StoryStatus, ChapterStatus
 from app.agents.translator.translator import traduire_chapitre, get_language_name, SUPPORTED_LANGUAGES
 from sqlmodel import Session, select
+from sqlalchemy.orm.attributes import flag_modified
 import uuid
 import asyncio
 import json
 import os
 import tempfile
+
+logger = get_logger("routes")
 
 # Setup Templates
 # This points to the 'app/templates' folder
@@ -193,14 +198,27 @@ async def generate_story_api(
     return {"job_id": job_id, "status": "started"}
 
 async def run_story_generation(job_id: str, initial_state: dict, user_id: int):
+    story_id = None
+    logger.info(f"Starting story generation job {job_id} for user {user_id}")
+    
     try:
+        # Start carbon tracking for story generation
+        carbon_tracker = CarbonTracker(
+            user_id=user_id,
+            operation_type=OperationType.STORY_GENERATION,
+            operation_details=f"job_{job_id}"
+        )
+        carbon_tracker.start()
+        
         final_state = await story_graph.ainvoke(initial_state)
         
         # Check for errors in final state
         if final_state.get("error"):
             story_jobs[job_id]["status"] = "failed"
             story_jobs[job_id]["error"] = final_state["error"]
-            print(f"Job {job_id} failed: {final_state['error']}")
+            log_error(f"Story generation failed", error=final_state["error"], 
+                     context={"job_id": job_id, "user_id": user_id})
+            carbon_tracker.stop()  # Still track failed attempts
             return
         
         # Save to database
@@ -216,8 +234,10 @@ async def run_story_generation(job_id: str, initial_state: dict, user_id: int):
             session.add(db_story)
             session.commit()
             session.refresh(db_story)
+            story_id = db_story.id
             
             # Create Chapter records
+            chapter_count = len(final_state["generated_chapters"])
             for chapter_data in final_state["generated_chapters"]:
                 db_chapter = Chapter(
                     story_id=db_story.id,
@@ -238,14 +258,32 @@ async def run_story_generation(job_id: str, initial_state: dict, user_id: int):
             story_jobs[job_id]["result"] = final_state
             story_jobs[job_id]["story_id"] = db_story.id
             
-            print(f"Job {job_id} completed and saved to DB (story_id: {db_story.id})")
+            # Log successful story creation
+            log_story_event(
+                user_id=user_id,
+                story_id=db_story.id,
+                event="story_created",
+                details={
+                    "job_id": job_id,
+                    "title": db_story.title,
+                    "chapter_count": chapter_count
+                }
+            )
+        
+        # Stop carbon tracking and update with story_id
+        carbon_tracker.story_id = story_id
+        carbon_tracker.stop()
             
     except Exception as e:
         story_jobs[job_id]["status"] = "failed"
         story_jobs[job_id]["error"] = str(e)
-        print(f"Job {job_id} failed: {e}")
+        log_error(f"Story generation exception", error=e, 
+                 context={"job_id": job_id, "user_id": user_id})
         import traceback
         traceback.print_exc()
+        # Stop tracking even on exception
+        if 'carbon_tracker' in locals():
+            carbon_tracker.stop()
 
 @router.get("/api/story/status/{job_id}")
 async def get_story_status(job_id: str):
@@ -425,13 +463,22 @@ async def translate_story(
     if chapters and chapters[0].translations and lang in chapters[0].translations:
         return {"status": "already_translated", "language": lang}
     
-    # Start translation in background
-    background_tasks.add_task(translate_story_task, story_id, lang)
+    # Start translation in background (pass user_id for carbon tracking)
+    background_tasks.add_task(translate_story_task, story_id, lang, current_user.id)
     
     return {"status": "translating", "language": lang, "story_id": story_id}
 
-async def translate_story_task(story_id: int, lang: str):
+async def translate_story_task(story_id: int, lang: str, user_id: int):
     """Background task to translate all chapters"""
+    # Start carbon tracking for translation
+    carbon_tracker = CarbonTracker(
+        user_id=user_id,
+        story_id=story_id,
+        operation_type=OperationType.TRANSLATION,
+        operation_details=f"translate_to_{lang}"
+    )
+    carbon_tracker.start()
+    
     try:
         from app.db.session import engine
         from sqlalchemy.orm.attributes import flag_modified
@@ -466,19 +513,21 @@ async def translate_story_task(story_id: int, lang: str):
                     flag_modified(chapter, "translations")
                     
                     session.add(chapter)
-                    print(f"Translated chapter {chapter.chapter_number} to {language_name}")
+                    logger.info(f"Translated chapter {chapter.chapter_number} to {language_name}")
                     
                 except Exception as e:
-                    print(f"Error translating chapter {chapter.chapter_number}: {e}")
+                    logger.error(f"Error translating chapter {chapter.chapter_number}: {e}")
                     continue
             
             session.commit()
-            print(f"Story {story_id} fully translated to {language_name}")
+            logger.info(f"Story {story_id} fully translated to {language_name}")
             
     except Exception as e:
-        print(f"Translation task failed for story {story_id}: {e}")
+        log_error(f"Translation task failed for story {story_id}", error=e)
         import traceback
         traceback.print_exc()
+    finally:
+        carbon_tracker.stop()
 
 @router.get("/api/story/{story_id}/translations")
 async def get_story_translations(
@@ -535,17 +584,29 @@ async def generate_chapter_audio(
         if chapter.audio_url:
             return {"audio_url": chapter.audio_url, "cached": True}
         
-        # Generate French audio from original content
-        from app.agents.speech.text_to_speech import generate_audio
-        audio_url = generate_audio(chapter.text_content, chapter.chapter_number, "fr")
+        # Start carbon tracking for TTS
+        carbon_tracker = CarbonTracker(
+            user_id=current_user.id,
+            story_id=story.id,
+            operation_type=OperationType.TTS,
+            operation_details=f"audio_chapter_{chapter.chapter_number}_fr"
+        )
+        carbon_tracker.start()
         
-        if audio_url:
-            chapter.audio_url = audio_url
-            session.add(chapter)
-            session.commit()
-            return {"audio_url": audio_url, "cached": False}
-        else:
-            raise HTTPException(status_code=500, detail="Failed to generate audio")
+        try:
+            # Generate French audio from original content
+            from app.agents.speech.text_to_speech import generate_audio
+            audio_url = generate_audio(chapter.text_content, chapter.chapter_number, "fr")
+            
+            if audio_url:
+                chapter.audio_url = audio_url
+                session.add(chapter)
+                session.commit()
+                return {"audio_url": audio_url, "cached": False}
+            else:
+                raise HTTPException(status_code=500, detail="Failed to generate audio")
+        finally:
+            carbon_tracker.stop()
     
     # Handle translated audio (en, zh)
     if lang not in ["en", "zh"]:
@@ -571,19 +632,31 @@ async def generate_chapter_audio(
     if not translated_text:
         raise HTTPException(status_code=400, detail="No translated content available")
     
-    # Generate audio for translated content
-    audio_url = generate_audio_for_translation(translated_text, chapter_id, lang)
+    # Start carbon tracking for TTS
+    carbon_tracker = CarbonTracker(
+        user_id=current_user.id,
+        story_id=story.id,
+        operation_type=OperationType.TTS,
+        operation_details=f"audio_chapter_{chapter.chapter_number}_{lang}"
+    )
+    carbon_tracker.start()
     
-    if audio_url:
-        # Save audio URL
-        audio_translations[lang] = audio_url
-        chapter.audio_translations = audio_translations
-        flag_modified(chapter, "audio_translations")
-        session.add(chapter)
-        session.commit()
-        return {"audio_url": audio_url, "cached": False}
-    else:
-        raise HTTPException(status_code=500, detail="Failed to generate audio")
+    try:
+        # Generate audio for translated content
+        audio_url = generate_audio_for_translation(translated_text, chapter_id, lang)
+        
+        if audio_url:
+            # Save audio URL
+            audio_translations[lang] = audio_url
+            chapter.audio_translations = audio_translations
+            flag_modified(chapter, "audio_translations")
+            session.add(chapter)
+            session.commit()
+            return {"audio_url": audio_url, "cached": False}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to generate audio")
+    finally:
+        carbon_tracker.stop()
 
 @router.get("/api/chapter/{chapter_id}/audio-status")
 async def get_chapter_audio_status(
@@ -602,3 +675,57 @@ async def get_chapter_audio_status(
     }
     
     return {"audio": audio_status}
+
+
+# =========================
+# CARBON DASHBOARD ROUTES
+# =========================
+
+@router.get("/carbon-dashboard")
+async def carbon_dashboard_page(
+    request: Request,
+    current_user: User = Depends(get_current_user_from_cookie)
+):
+    """Carbon footprint dashboard page"""
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    # Get user's carbon stats
+    stats = get_user_carbon_stats(current_user.id)
+    
+    return templates.TemplateResponse("carbon_dashboard.html", {
+        "request": request,
+        "stats": stats,
+        "user": current_user
+    })
+
+
+@router.get("/api/user/carbon")
+async def get_user_carbon(
+    current_user: User = Depends(get_current_user_from_cookie)
+):
+    """API endpoint to get user's carbon statistics"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    return get_user_carbon_stats(current_user.id)
+
+
+@router.get("/api/story/{story_id}/carbon")
+async def get_story_carbon_stats(
+    story_id: int,
+    current_user: User = Depends(get_current_user_from_cookie),
+    session: Session = Depends(get_session)
+):
+    """Get carbon emissions for a specific story"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Verify story belongs to user
+    story = session.get(Story, story_id)
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+    if story.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return get_story_carbon(story_id)
