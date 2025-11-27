@@ -294,6 +294,7 @@ async def view_story(
                 "plan": story.plan_data,
                 "generated_chapters": [
                     {
+                        "id": ch.id,  # Chapter ID for audio generation
                         "numero": ch.chapter_number,
                         "titre": (
                             ch.translations[lang]["translated_title"] 
@@ -365,6 +366,7 @@ async def view_story_by_id(
         "plan": story.plan_data,
         "generated_chapters": [
             {
+                "id": ch.id,  # Chapter ID for audio generation
                 "numero": ch.chapter_number,
                 "titre": (
                     ch.translations[lang]["translated_title"] 
@@ -503,3 +505,100 @@ async def get_story_translations(
             for code, name in SUPPORTED_LANGUAGES.items()
         ]
     }
+
+# Audio generation endpoint
+@router.post("/api/chapter/{chapter_id}/audio/{lang}")
+async def generate_chapter_audio(
+    chapter_id: int,
+    lang: str,
+    current_user: User = Depends(get_current_user_from_cookie),
+    session: Session = Depends(get_session)
+):
+    """
+    Generate audio for a chapter in a specific language.
+    On-demand generation - creates audio when user clicks "Listen".
+    """
+    from app.agents.speech.text_to_speech import generate_audio_for_translation
+    
+    # Get chapter
+    chapter = session.get(Chapter, chapter_id)
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    
+    # Verify ownership through story
+    story = session.get(Story, chapter.story_id)
+    if not story or story.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Handle French (original) audio
+    if lang == "fr":
+        if chapter.audio_url:
+            return {"audio_url": chapter.audio_url, "cached": True}
+        
+        # Generate French audio from original content
+        from app.agents.speech.text_to_speech import generate_audio
+        audio_url = generate_audio(chapter.text_content, chapter.chapter_number, "fr")
+        
+        if audio_url:
+            chapter.audio_url = audio_url
+            session.add(chapter)
+            session.commit()
+            return {"audio_url": audio_url, "cached": False}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to generate audio")
+    
+    # Handle translated audio (en, zh)
+    if lang not in ["en", "zh"]:
+        raise HTTPException(status_code=400, detail=f"Unsupported language: {lang}")
+    
+    # Check if audio already exists
+    audio_translations = chapter.audio_translations or {}
+    if lang in audio_translations and audio_translations[lang]:
+        return {"audio_url": audio_translations[lang], "cached": True}
+    
+    # Check if translation exists
+    translations = chapter.translations or {}
+    if lang not in translations:
+        raise HTTPException(status_code=400, detail=f"No translation available for {lang}. Translate first.")
+    
+    # Get translated text content
+    translation_data = translations[lang]
+    if isinstance(translation_data, dict):
+        translated_text = translation_data.get("translated_content", "")
+    else:
+        translated_text = translation_data  # Old format: string only
+    
+    if not translated_text:
+        raise HTTPException(status_code=400, detail="No translated content available")
+    
+    # Generate audio for translated content
+    audio_url = generate_audio_for_translation(translated_text, chapter_id, lang)
+    
+    if audio_url:
+        # Save audio URL
+        audio_translations[lang] = audio_url
+        chapter.audio_translations = audio_translations
+        flag_modified(chapter, "audio_translations")
+        session.add(chapter)
+        session.commit()
+        return {"audio_url": audio_url, "cached": False}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to generate audio")
+
+@router.get("/api/chapter/{chapter_id}/audio-status")
+async def get_chapter_audio_status(
+    chapter_id: int,
+    session: Session = Depends(get_session)
+):
+    """Get available audio for a chapter in all languages"""
+    chapter = session.get(Chapter, chapter_id)
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    
+    audio_status = {
+        "fr": chapter.audio_url or None,
+        "en": (chapter.audio_translations or {}).get("en"),
+        "zh": (chapter.audio_translations or {}).get("zh"),
+    }
+    
+    return {"audio": audio_status}
