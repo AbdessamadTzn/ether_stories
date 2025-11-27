@@ -81,7 +81,14 @@ def validator_node(state: ManagerState) -> ManagerState:
         
     try:
         plan = json.loads(raw)
-
+        
+        # Check if LLM returned an error response (content rejected, format violation, etc.)
+        if plan.get("error") == True:
+            error_type = plan.get("error_type", "UNKNOWN")
+            user_message = plan.get("message", "Contenu inapproprié détecté.")
+            print(f"LLM rejected content: {error_type}")
+            # Return user-friendly message directly
+            return {"error": user_message}
         
         # Structural Validation
         required = ["plan", "chapitres", "personnages"]
