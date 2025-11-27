@@ -87,10 +87,13 @@ class Chapter(SQLModel, table=True):
     text_content: Optional[str] = Field(default=None) 
 
     image_url: Optional[str] = None     # The illustration
-    audio_url: Optional[str] = None     # The narrator output
+    audio_url: Optional[str] = None     # The narrator output (French original)
     
-    # Translations (e.g., {"es": "Hola...", "fr": "Bonjour..."})
-    translations: Dict[str, str] = Field(default={}, sa_column=Column(JSON))
+    # Translations (e.g., {"en": {"titre": "...", "contenu": "..."}, "zh": {...}})
+    translations: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+    
+    # Audio URLs for translations (e.g., {"en": "/static/audio/...", "zh": "/static/audio/..."})
+    audio_translations: Dict[str, str] = Field(default={}, sa_column=Column(JSON))
     
     status: ChapterStatus = Field(default=ChapterStatus.PENDING)
     created_at: datetime = Field(default_factory=datetime.utcnow)
