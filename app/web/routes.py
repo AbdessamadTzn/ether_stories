@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, Cookie, Depends
+from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, Cookie, Depends, UploadFile, File, Form
 from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
@@ -13,6 +13,8 @@ from sqlmodel import Session, select
 import uuid
 import asyncio
 import json
+import os
+import tempfile
 
 # Setup Templates
 # This points to the 'app/templates' folder
@@ -120,23 +122,65 @@ async def create_story_page(request: Request):
     
     return templates.TemplateResponse("create.html", {"request": request, "user_email": email})
 
+# Directory for temporary audio uploads
+AUDIO_UPLOAD_DIR = Path(__file__).resolve().parent.parent / "static" / "audio" / "uploads"
+AUDIO_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+@router.post("/api/audio/upload")
+async def upload_audio(
+    audio: UploadFile = File(...),
+    current_user: User = Depends(get_current_user_from_cookie)
+):
+    """
+    Upload audio file for speech-to-text transcription.
+    Returns the file path for use in story generation.
+    """
+    # Validate file type
+    allowed_types = ["audio/webm", "audio/wav", "audio/mp3", "audio/mpeg", "audio/ogg", "audio/mp4", "audio/x-m4a"]
+    if audio.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail=f"Type de fichier non supporté: {audio.content_type}")
+    
+    # Generate unique filename
+    file_ext = audio.filename.split(".")[-1] if "." in audio.filename else "webm"
+    unique_filename = f"voice_{current_user.id}_{uuid.uuid4().hex[:8]}.{file_ext}"
+    file_path = AUDIO_UPLOAD_DIR / unique_filename
+    
+    # Save file
+    try:
+        content = await audio.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        return {"audio_path": str(file_path), "filename": unique_filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur lors de l'upload: {str(e)}")
+
 @router.post("/api/story/generate")
 async def generate_story_api(
     background_tasks: BackgroundTasks,
-    age: int,
-    topic: str,
+    age: int = 6,
+    topic: Optional[str] = None,
     moral: Optional[str] = "Amitié",
     duration: Optional[int] = 5,
+    audio_path: Optional[str] = None,
     current_user: User = Depends(get_current_user_from_cookie)
 ):
+    """
+    Generate a story. Can use either text input (topic) or voice input (audio_path).
+    """
+    # Validate: must have either topic OR audio_path
+    if not topic and not audio_path:
+        raise HTTPException(status_code=400, detail="Veuillez fournir un sujet ou un enregistrement vocal.")
+    
     job_id = str(uuid.uuid4())
     
     initial_state = {
         "user_input": {
             "age": age,
-            "keywords": topic,
+            "keywords": topic or "",
             "moral": moral,
-            "duree_minutes": duration
+            "duree_minutes": duration,
+            "audio_file": audio_path  # Will be transcribed in input_processing_node
         },
         "generated_chapters": [],
         "is_complete": False
