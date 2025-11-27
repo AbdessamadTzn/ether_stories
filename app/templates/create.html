@@ -6,6 +6,28 @@
     <div class="col-md-8">
       <div class="card shadow">
         <div class="card-body">
+          <!-- Input Mode Toggle -->
+          <div class="mb-4 text-center">
+            <div class="btn-group" role="group" aria-label="Mode de saisie">
+              <button
+                type="button"
+                class="btn btn-primary active"
+                id="textModeBtn"
+                onclick="switchToTextMode()"
+              >
+                ✏️ Écrire
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-primary"
+                id="voiceModeBtn"
+                onclick="switchToVoiceMode()"
+              >
+                🎤 Parler
+              </button>
+            </div>
+          </div>
+
           <form id="storyForm">
             <div class="mb-3">
               <label for="age" class="form-label">Âge de l'enfant</label>
@@ -19,14 +41,72 @@
               />
             </div>
 
-            <div class="mb-3">
-              <label for="topic" class="form-label">Sujet / Mots-clés</label>
-              <input
-                type="text"
-                class="form-control"
-                id="topic"
-                placeholder="Ex: Dinosaures, Espace, Licorne..."
-              />
+            <!-- Text Input Mode -->
+            <div id="textInputSection">
+              <div class="mb-3">
+                <label for="topic" class="form-label">Sujet / Mots-clés</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="topic"
+                  placeholder="Ex: Dinosaures, Espace, Licorne..."
+                />
+              </div>
+            </div>
+
+            <!-- Voice Input Mode -->
+            <div id="voiceInputSection" class="d-none">
+              <div class="mb-3">
+                <label class="form-label"
+                  >Décris l'histoire que tu veux 🎤</label
+                >
+                <div class="text-center p-4 border rounded bg-light">
+                  <div id="recordingStatus" class="mb-3">
+                    <span class="text-muted"
+                      >Clique sur le micro pour commencer</span
+                    >
+                  </div>
+
+                  <button
+                    type="button"
+                    id="recordBtn"
+                    class="btn btn-lg btn-outline-danger rounded-circle p-4"
+                    onclick="toggleRecording()"
+                  >
+                    <i
+                      id="micIcon"
+                      class="bi bi-mic-fill"
+                      style="font-size: 2rem"
+                      >🎙️</i
+                    >
+                  </button>
+
+                  <div id="recordingIndicator" class="d-none mt-3">
+                    <div
+                      class="spinner-grow text-danger spinner-grow-sm"
+                      role="status"
+                    ></div>
+                    <span class="text-danger ms-2"
+                      >Enregistrement en cours...</span
+                    >
+                  </div>
+
+                  <div id="audioPreview" class="d-none mt-3">
+                    <audio id="audioPlayback" controls class="w-100"></audio>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary mt-2"
+                      onclick="resetRecording()"
+                    >
+                      🔄 Réenregistrer
+                    </button>
+                  </div>
+                </div>
+                <small class="text-muted"
+                  >Ex: "Je veux une histoire avec un petit dragon qui apprend à
+                  voler"</small
+                >
+              </div>
             </div>
 
             <div class="mb-3">
@@ -54,7 +134,11 @@
             </div>
 
             <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary btn-lg">
+              <button
+                type="submit"
+                class="btn btn-primary btn-lg"
+                id="submitBtn"
+              >
                 ✨ Générer l'Histoire
               </button>
             </div>
@@ -76,30 +160,196 @@
 </div>
 
 <script>
+  // State variables
+  let inputMode = 'text'; // 'text' or 'voice'
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let audioBlob = null;
+  let audioPath = null;
+  let isRecording = false;
+
+  // Mode switching functions
+  function switchToTextMode() {
+    inputMode = 'text';
+    document.getElementById('textModeBtn').classList.add('active');
+    document
+      .getElementById('textModeBtn')
+      .classList.remove('btn-outline-primary');
+    document.getElementById('textModeBtn').classList.add('btn-primary');
+    document.getElementById('voiceModeBtn').classList.remove('active');
+    document
+      .getElementById('voiceModeBtn')
+      .classList.add('btn-outline-primary');
+    document.getElementById('voiceModeBtn').classList.remove('btn-primary');
+    document.getElementById('textInputSection').classList.remove('d-none');
+    document.getElementById('voiceInputSection').classList.add('d-none');
+    resetRecording();
+  }
+
+  function switchToVoiceMode() {
+    inputMode = 'voice';
+    document.getElementById('voiceModeBtn').classList.add('active');
+    document
+      .getElementById('voiceModeBtn')
+      .classList.remove('btn-outline-primary');
+    document.getElementById('voiceModeBtn').classList.add('btn-primary');
+    document.getElementById('textModeBtn').classList.remove('active');
+    document.getElementById('textModeBtn').classList.add('btn-outline-primary');
+    document.getElementById('textModeBtn').classList.remove('btn-primary');
+    document.getElementById('voiceInputSection').classList.remove('d-none');
+    document.getElementById('textInputSection').classList.add('d-none');
+  }
+
+  // Recording functions
+  async function toggleRecording() {
+    if (!isRecording) {
+      await startRecording();
+    } else {
+      stopRecording();
+    }
+  }
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        document.getElementById('audioPlayback').src = audioUrl;
+        document.getElementById('audioPreview').classList.remove('d-none');
+        document.getElementById('recordingIndicator').classList.add('d-none');
+        document.getElementById('recordingStatus').innerHTML =
+          '<span class="text-success">✅ Enregistrement terminé!</span>';
+
+        // Upload audio file
+        await uploadAudio();
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      document.getElementById('recordBtn').classList.add('btn-danger');
+      document
+        .getElementById('recordBtn')
+        .classList.remove('btn-outline-danger');
+      document.getElementById('recordingIndicator').classList.remove('d-none');
+      document.getElementById('recordingStatus').innerHTML =
+        '<span class="text-danger">🔴 Parle maintenant...</span>';
+      document.getElementById('audioPreview').classList.add('d-none');
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      alert("Impossible d'accéder au microphone. Vérifiez les permissions.");
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+      isRecording = false;
+      document.getElementById('recordBtn').classList.remove('btn-danger');
+      document.getElementById('recordBtn').classList.add('btn-outline-danger');
+    }
+  }
+
+  function resetRecording() {
+    audioBlob = null;
+    audioPath = null;
+    audioChunks = [];
+    document.getElementById('audioPreview').classList.add('d-none');
+    document.getElementById('recordingIndicator').classList.add('d-none');
+    document.getElementById('recordingStatus').innerHTML =
+      '<span class="text-muted">Clique sur le micro pour commencer</span>';
+    if (isRecording) {
+      stopRecording();
+    }
+  }
+
+  async function uploadAudio() {
+    if (!audioBlob) return;
+
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'voice_recording.webm');
+
+    try {
+      document.getElementById('recordingStatus').innerHTML =
+        '<span class="text-info">📤 Upload en cours...</span>';
+
+      const response = await fetch('/api/audio/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      audioPath = data.audio_path;
+      document.getElementById('recordingStatus').innerHTML =
+        '<span class="text-success">✅ Prêt à générer l\'histoire!</span>';
+    } catch (error) {
+      console.error('Upload error:', error);
+      document.getElementById('recordingStatus').innerHTML =
+        '<span class="text-danger">❌ Erreur d\'upload. Réessayez.</span>';
+      audioPath = null;
+    }
+  }
+
+  // Form submission
   document.getElementById('storyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const btn = e.target.querySelector('button');
+    const btn = document.getElementById('submitBtn');
     const loading = document.getElementById('loading');
     const progress = document.getElementById('progress');
+
+    // Validate input based on mode
+    if (inputMode === 'text') {
+      const topic = document.getElementById('topic').value.trim();
+      if (!topic) {
+        alert("Veuillez entrer un sujet pour l'histoire.");
+        return;
+      }
+    } else {
+      if (!audioPath) {
+        alert('Veuillez enregistrer un message vocal.');
+        return;
+      }
+    }
 
     btn.disabled = true;
     loading.classList.remove('d-none');
 
     const age = document.getElementById('age').value;
-    const topic = document.getElementById('topic').value;
+    const topic =
+      inputMode === 'text' ? document.getElementById('topic').value : '';
     const moral = document.getElementById('moral').value;
     const duration = document.getElementById('duration').value;
 
     try {
-      // Start Generation (cookies are sent automatically)
-      const response = await fetch(
-        `/api/story/generate?age=${age}&topic=${topic}&moral=${moral}&duration=${duration}`,
-        {
-          method: 'POST',
-          credentials: 'include', // Ensure cookies are sent
-        }
-      );
+      // Build URL with parameters
+      let url = `/api/story/generate?age=${age}&moral=${encodeURIComponent(
+        moral
+      )}&duration=${duration}`;
+
+      if (inputMode === 'text') {
+        url += `&topic=${encodeURIComponent(topic)}`;
+      } else {
+        url += `&audio_path=${encodeURIComponent(audioPath)}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+      });
 
       if (response.status === 401) {
         alert('Session expirée. Veuillez vous reconnecter.');
@@ -120,7 +370,6 @@
           window.location.href = `/story/${jobId}`;
         } else if (statusData.status === 'failed') {
           clearInterval(interval);
-          // Show user-friendly error message from backend
           const errorMsg =
             statusData.error_message || 'Erreur lors de la génération.';
           alert(errorMsg);
