@@ -83,10 +83,9 @@ def moderator_node(state: StoryState) -> StoryState:
     if result["coherent"]:
         return {"error": None}
     else:
-        # If rejected, we could increment retry count or fail. 
-        # For simplicity here, we'll just log error and maybe retry in a real loop.
-        # Here we will just pass but mark error to trigger retry logic if we had it.
-        return {"error": f"Moderation rejected: {result.get('reason')}"}
+        # Use user-friendly message if available, otherwise fall back to technical reason
+        error_msg = result.get("user_message") or result.get("reason") or "Contenu inapproprié détecté."
+        return {"error": error_msg}
 
 def painter_node(state: StoryState) -> StoryState:
     """
