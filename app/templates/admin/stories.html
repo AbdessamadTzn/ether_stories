@@ -1,0 +1,212 @@
+{% extends "base.html" %} {% block title %}Gestion Histoires - Admin{% endblock
+%} {% block content %}
+<div class="container-fluid mt-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="display-6 text-magical-gold">
+        <i class="bi bi-book"></i> Gestion des Histoires
+      </h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item">
+            <a href="/admin" class="text-magical-gold">Admin</a>
+          </li>
+          <li class="breadcrumb-item active text-muted">Histoires</li>
+        </ol>
+      </nav>
+    </div>
+    <a href="/admin" class="btn btn-outline-magical">
+      <i class="bi bi-arrow-left"></i> Retour
+    </a>
+  </div>
+
+  <!-- Stats Summary -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card text-center" style="background: rgba(45, 45, 109, 0.85)">
+        <div class="card-body py-3">
+          <h3 class="text-magical-gold mb-0">{{ stats.total }}</h3>
+          <small class="text-muted">Total</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center" style="background: rgba(45, 45, 109, 0.85)">
+        <div class="card-body py-3">
+          <h3 class="text-success mb-0">{{ stats.completed }}</h3>
+          <small class="text-muted">Complétées</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center" style="background: rgba(45, 45, 109, 0.85)">
+        <div class="card-body py-3">
+          <h3 class="text-danger mb-0">{{ stats.failed }}</h3>
+          <small class="text-muted">Échouées</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-center" style="background: rgba(45, 45, 109, 0.85)">
+        <div class="card-body py-3">
+          <h3 class="text-info mb-0">{{ stats.today }}</h3>
+          <small class="text-muted">Aujourd'hui</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stories Table -->
+  <div
+    class="card"
+    style="
+      background: rgba(45, 45, 109, 0.85);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+    "
+  >
+    <div
+      class="card-header d-flex justify-content-between align-items-center"
+      style="background: rgba(255, 215, 0, 0.1)"
+    >
+      <h5 class="mb-0 text-magical-gold">Liste des Histoires</h5>
+      <div class="d-flex gap-2">
+        <select
+          class="form-select form-select-sm"
+          id="filterStatus"
+          style="width: auto"
+        >
+          <option value="">Tous statuts</option>
+          <option value="completed">Complétées</option>
+          <option value="failed">Échouées</option>
+          <option value="generating">En cours</option>
+        </select>
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          id="searchStories"
+          placeholder="🔍 Rechercher..."
+          style="width: 200px"
+        />
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0" id="storiesTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Titre</th>
+              <th>Utilisateur</th>
+              <th>Chapitres</th>
+              <th>Durée</th>
+              <th>Statut</th>
+              <th>Créée le</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for story in stories %}
+            <tr data-story-id="{{ story.id }}" data-status="{{ story.status }}">
+              <td>{{ story.id }}</td>
+              <td>
+                <span class="text-magical-gold"
+                  >{{ story.title[:40] }}{% if story.title|length > 40 %}...{%
+                  endif %}</span
+                >
+              </td>
+              <td>
+                <small>{{ story.user_email }}</small>
+              </td>
+              <td>
+                <span class="badge bg-info">{{ story.chapter_count }}</span>
+              </td>
+              <td>{{ story.duration }} min</td>
+              <td>
+                <span
+                  class="badge {% if story.status == 'completed' %}bg-success{% elif story.status == 'failed' %}bg-danger{% elif story.status == 'generating' %}bg-warning{% else %}bg-secondary{% endif %}"
+                >
+                  {{ story.status }}
+                </span>
+              </td>
+              <td>{{ story.created_at[:10] }}</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <a
+                    href="/story/{{ story.id }}"
+                    class="btn btn-outline-info"
+                    title="Voir"
+                    target="_blank"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <button
+                    class="btn btn-outline-danger"
+                    onclick="deleteStory({{ story.id }}, '{{ story.title[:20] }}')"
+                    title="Supprimer"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Search filter
+  document
+    .getElementById('searchStories')
+    .addEventListener('input', filterTable);
+  document
+    .getElementById('filterStatus')
+    .addEventListener('change', filterTable);
+
+  function filterTable() {
+    const search = document.getElementById('searchStories').value.toLowerCase();
+    const status = document.getElementById('filterStatus').value;
+
+    document.querySelectorAll('#storiesTable tbody tr').forEach((row) => {
+      const text = row.textContent.toLowerCase();
+      const rowStatus = row.dataset.status;
+
+      const matchesSearch = text.includes(search);
+      const matchesStatus = !status || rowStatus === status;
+
+      row.style.display = matchesSearch && matchesStatus ? '' : 'none';
+    });
+  }
+
+  // Delete story
+  async function deleteStory(storyId, title) {
+    if (
+      !confirm(
+        `Êtes-vous sûr de vouloir supprimer l'histoire "${title}..."?\n\nCette action est irréversible.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/admin/api/story/${storyId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        location.reload();
+      } else {
+        const error = await response.json();
+        alert('Erreur: ' + error.detail);
+      }
+    } catch (error) {
+      alert('Erreur de suppression');
+    }
+  }
+</script>
+{% endblock %}
