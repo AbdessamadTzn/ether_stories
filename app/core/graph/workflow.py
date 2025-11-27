@@ -5,7 +5,7 @@ from app.agents.narrative.writer import generate_chapter_content
 from app.agents.narrative.moderator import verify_coherence
 from app.agents.narrative.painter import generate_image
 from app.agents.speech.t2s import generate_audio
-from app.agents.speech.s2t import transcribe_audio
+from app.agents.speech.speech_to_text import transcribe_audio
 
 # --- NODES ---
 
