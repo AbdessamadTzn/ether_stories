@@ -4,42 +4,49 @@ import re
 from typing import List, Optional, Dict, Any
 from groq import Groq
 from app.core.config import settings
+from app.agents.context_loader import load_context, wrap_user_input, get_user_friendly_error
 
 # Use settings for API Key
 client = Groq(api_key=settings.GROQ_API_KEY)
 
-SYSTEM_PROMPT = """
-Tu es le "Manager Agent" pour Ether Stories.
-Ton rôle est de créer un plan d'histoire structuré pour enfants.
-Tu dois respecter scrupuleusement le format JSON demandé.
-"""
+# Load hardened system prompt from context file
+SYSTEM_PROMPT = load_context("manager")
+
 
 def get_user_prompt(age, interests, peurs, keywords, moral, type_histoire, duree_minutes, personnage, transcription=None):
-    base = f"""
-    Crée un plan pour une histoire d'enfant.
-    Age: {age}
-    Intérêts: {interests}
-    Peurs à éviter: {peurs}
-    Mots-clés: {keywords}
-    Morale: {moral}
-    Type: {type_histoire}
-    Durée: {duree_minutes} minutes
-    Personnage principal: {personnage}
-    """
+    """Build user prompt with input isolation (XML wrapped)."""
+    
+    # Build the raw user data
+    raw_input = f"""
+Age de l'enfant: {age}
+Intérêts: {interests}
+Peurs à éviter: {peurs}
+Mots-clés pour l'histoire: {keywords}
+Morale souhaitée: {moral}
+Type d'histoire: {type_histoire}
+Durée souhaitée: {duree_minutes} minutes
+Personnage principal: {personnage}
+"""
     if transcription:
-        base += f"\nBasé sur cette transcription audio de l'enfant: {transcription}"
-        
-    base += """
-    Format de sortie attendu (JSON pur):
-    {
-      "plan": {"titre": "...", "type_histoire": "...", "duree_estimee": 10, "age_cible": 7, "personnage_principal": "..."},
-      "chapitres": [{"numero": 1, "titre": "...", "resume": "...", "duree_minutes": 3}],
-      "morale": {"valeur_principale": "...", "message": "...", "integration": "..."},
-      "personnages": [{"nom": "...", "role": "...", "description": "..."}],
-      "elements_cles": {"keywords_utilises": [], "interets_integres": [], "peurs_evitees": []}
-    }
-    """
-    return base
+        raw_input += f"Transcription audio de l'enfant: {transcription}\n"
+    
+    # Wrap in XML tags for input isolation
+    wrapped_input = wrap_user_input(raw_input)
+    
+    prompt = f"""
+{wrapped_input}
+
+Analyse les données ci-dessus et crée un plan d'histoire.
+Retourne UNIQUEMENT le JSON suivant (pas de texte avant ou après):
+{{
+  "plan": {{"titre": "...", "type_histoire": "...", "duree_estimee": number, "age_cible": number, "personnage_principal": "..."}},
+  "chapitres": [{{"numero": 1, "titre": "...", "resume": "...", "duree_minutes": number}}],
+  "morale": {{"valeur_principale": "...", "message": "...", "integration": "..."}},
+  "personnages": [{{"nom": "...", "role": "...", "description": "..."}}],
+  "elements_cles": {{"keywords_utilises": [], "interets_integres": [], "peurs_evitees": []}}
+}}
+"""
+    return prompt
 
 def create_story_plan(state: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -76,6 +83,12 @@ def create_story_plan(state: Dict[str, Any]) -> Dict[str, Any]:
         )
         content = completion.choices[0].message.content
         plan = json.loads(content)
+        
+        # Check if LLM returned an error response (content rejected)
+        if plan.get("error") == True:
+            user_message = plan.get("message", "Ce thème n'est pas adapté pour une histoire pour enfants.")
+            return {"error": user_message}
+        
         return {"plan": plan}
     except Exception as e:
         return {"error": f"Manager Error: {str(e)}"}
