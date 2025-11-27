@@ -1,23 +1,38 @@
-{% extends "base.html" %} {% block title %}Login - Ether Stories{% endblock %}
+{% extends "base.html" %} {% block title %}Connexion - Ether Stories{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-4">
-    <div class="card p-4 shadow-sm">
-      <h3 class="text-center mb-4">Welcome Back</h3>
-      <form id="loginForm">
-        <div class="mb-3">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-control" id="email" required />
+<div class="row justify-content-center mt-4">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow-lg">
+      <div class="card-body p-4">
+        <div class="text-center mb-4">
+          <span style="font-size: 3rem;">🏰</span>
+          <h3 class="card-title mt-2">Bon retour !</h3>
+          <p class="text-muted">Connectez-vous pour continuer l'aventure</p>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Password</label>
-          <input type="password" class="form-control" id="password" required />
-        </div>
-        <div class="d-grid">
-          <button type="submit" class="btn btn-primary">Login</button>
-        </div>
-      </form>
-      <div id="alert" class="alert alert-danger mt-3 d-none"></div>
+        
+        <form id="loginForm">
+          <div class="mb-4">
+            <label class="form-label"><i class="bi bi-envelope"></i> Email</label>
+            <input type="email" class="form-control" id="email" placeholder="votre@email.com" required />
+          </div>
+          <div class="mb-4">
+            <label class="form-label"><i class="bi bi-lock"></i> Mot de passe</label>
+            <input type="password" class="form-control" id="password" placeholder="••••••••" required />
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-magical-primary btn-lg">
+              <i class="bi bi-box-arrow-in-right"></i> Se connecter
+            </button>
+          </div>
+        </form>
+        
+        <div id="alert" class="alert alert-danger mt-3 d-none"></div>
+        
+        <p class="text-center mt-4 mb-0">
+          <span class="text-muted">Pas encore de compte ?</span>
+          <a href="/signup" class="text-magical-gold fw-bold">Créer un compte</a>
+        </p>
+      </div>
     </div>
   </div>
 </div>
@@ -50,11 +65,11 @@
         localStorage.setItem('access_token', data.access_token);
         window.location.href = '/create'; // Redirect to create page
       } else {
-        alertBox.textContent = data.detail || 'Login failed';
+        alertBox.textContent = data.detail || 'Échec de la connexion';
         alertBox.classList.remove('d-none');
       }
     } catch (error) {
-      alertBox.textContent = 'Connection error';
+      alertBox.textContent = 'Erreur de connexion';
       alertBox.classList.remove('d-none');
     }
   });

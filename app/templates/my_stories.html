@@ -1,47 +1,56 @@
-{% extends "base.html" %} {% block title %}My Stories - Ether Stories{% endblock
-%} {% block content %}
-<div class="container mt-5">
+{% extends "base.html" %} {% block title %}Mes Histoires - Ether Stories{%
+endblock %} {% block content %}
+<div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="display-5">📚 My Stories</h1>
-    <a href="/create" class="btn btn-primary"> ✨ Create New Story </a>
+    <h1 class="display-5 text-magical-gold">
+      <i class="bi bi-book"></i> Mes Histoires
+    </h1>
+    <a href="/create" class="btn btn-magical-primary">
+      <i class="bi bi-stars"></i> Créer une nouvelle
+    </a>
   </div>
 
   {% if stories %}
-  <div class="row">
+  <div class="row g-4">
     {% for story in stories %}
-    <div class="col-md-6 col-lg-4 mb-4">
-      <div class="card h-100 shadow-sm">
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
         <div class="card-body">
           <h5 class="card-title">{{ story.title }}</h5>
           <p class="text-muted mb-2">
-            <small> 📅 {{ story.created_at.strftime('%B %d, %Y') }} </small>
+            <small
+              ><i class="bi bi-calendar"></i> {{ story.created_at.strftime('%d
+              %B %Y') }}</small
+            >
           </p>
 
           {% if story.plan_data and story.plan_data.plan %}
-          <p class="card-text">
+          <div class="d-flex gap-2 flex-wrap mb-3">
             <span class="badge bg-primary"
               >{{ story.plan_data.plan.type_histoire }}</span
             >
             <span class="badge bg-info"
-              >{{ story.plan_data.plan.duree_estimee }} min</span
+              ><i class="bi bi-clock"></i> {{ story.plan_data.plan.duree_estimee
+              }} min</span
             >
             <span class="badge bg-secondary"
-              >Age {{ story.plan_data.plan.age_cible }}+</span
+              ><i class="bi bi-person"></i> {{ story.plan_data.plan.age_cible
+              }}+ ans</span
             >
-          </p>
+          </div>
 
           {% if story.plan_data.chapitres %}
-          <p class="text-muted">
-            <small>{{ story.plan_data.chapitres|length }} chapters</small>
+          <p class="text-muted mb-3">
+            <small
+              ><i class="bi bi-journal-text"></i> {{
+              story.plan_data.chapitres|length }} chapitres</small
+            >
           </p>
           {% endif %} {% endif %}
 
-          <div class="d-grid gap-2 mt-3">
-            <a
-              href="/story/view/{{ story.id }}"
-              class="btn btn-outline-primary"
-            >
-              📖 Read Story
+          <div class="d-grid gap-2">
+            <a href="/story/view/{{ story.id }}" class="btn btn-primary">
+              <i class="bi bi-book"></i> Lire l'histoire
             </a>
 
             <div class="btn-group" role="group">
@@ -50,7 +59,7 @@
                 class="btn btn-sm btn-outline-secondary dropdown-toggle"
                 data-bs-toggle="dropdown"
               >
-                🌐 Translate
+                <i class="bi bi-translate"></i> Traduire
               </button>
               <ul class="dropdown-menu">
                 <li>
@@ -59,8 +68,9 @@
                     href="#"
                     data-story-id="{{ story.id }}"
                     data-lang="en"
-                    >🇬🇧 English</a
                   >
+                    🇬🇧 English
+                  </a>
                 </li>
                 <li>
                   <a
@@ -68,21 +78,35 @@
                     href="#"
                     data-story-id="{{ story.id }}"
                     data-lang="zh"
-                    >🇨🇳 Chinese</a
                   >
+                    🇨🇳 Chinese
+                  </a>
                 </li>
               </ul>
             </div>
           </div>
         </div>
 
-        <div class="card-footer text-muted">
+        <div
+          class="card-footer"
+          style="
+            background: transparent;
+            border-top: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
           <small>
             Status:
             <span
               class="badge {% if story.status == 'COMPLETED' %}bg-success {% elif story.status == 'GENERATING' %}bg-warning {% elif story.status == 'FAILED' %}bg-danger {% else %}bg-secondary{% endif %}"
             >
-              {{ story.status }}
+              {% if story.status == 'COMPLETED' %}<i
+                class="bi bi-check-circle"
+              ></i>
+              {% elif story.status == 'GENERATING' %}<i
+                class="bi bi-hourglass-split"
+              ></i>
+              {% elif story.status == 'FAILED' %}<i class="bi bi-x-circle"></i>
+              {% endif %} {{ story.status }}
             </span>
           </small>
         </div>
@@ -92,23 +116,14 @@
   </div>
   {% else %}
   <div class="text-center py-5">
-    <div class="mb-4">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="100"
-        height="100"
-        fill="currentColor"
-        class="bi bi-book text-muted"
-        viewBox="0 0 16 16"
-      >
-        <path
-          d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"
-        />
-      </svg>
+    <div class="feature-card mx-auto" style="max-width: 400px">
+      <div class="feature-icon">📚</div>
+      <h3 class="feature-title">Pas encore d'histoires</h3>
+      <p class="feature-text">Créez votre première histoire magique !</p>
+      <a href="/create" class="btn btn-magical-primary btn-lg mt-3">
+        <i class="bi bi-stars"></i> Créer une histoire
+      </a>
     </div>
-    <h3 class="text-muted">No stories yet</h3>
-    <p class="lead">Create your first magical story!</p>
-    <a href="/create" class="btn btn-primary btn-lg mt-3"> ✨ Create Story </a>
   </div>
   {% endif %}
 </div>
@@ -124,7 +139,7 @@
 
       if (
         !confirm(
-          `Translate this story to ${langName}? This may take 1-2 minutes.`
+          `Traduire cette histoire en ${langName} ? Cela peut prendre 1-2 minutes.`
         )
       ) {
         return;
@@ -143,17 +158,17 @@
 
         if (response.ok) {
           if (data.status === 'already_translated') {
-            alert(`This story is already translated to ${langName}!`);
+            alert(`Cette histoire est déjà traduite en ${langName} !`);
           } else {
             alert(
-              `Translation started! Check back in 1-2 minutes and reload the page.`
+              `Traduction en cours ! Revenez dans 1-2 minutes et rafraîchissez la page.`
             );
           }
         } else {
           throw new Error(data.detail || 'Translation failed');
         }
       } catch (error) {
-        alert(`Error: ${error.message}`);
+        alert(`Erreur: ${error.message}`);
       }
     });
   });

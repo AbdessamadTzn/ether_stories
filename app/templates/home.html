@@ -1,20 +1,64 @@
 {% extends "base.html" %} {% block content %}
-<div class="px-4 py-5 my-5 text-center">
-  <h1 class="display-5 fw-bold">Bienvenue sur Ether Stories</h1>
-  <div class="col-lg-6 mx-auto">
-    <p class="lead mb-4">
-      Créez des histoires magiques pour vos enfants grâce à l'intelligence
-      artificielle. Narration, illustrations et audio générés en quelques
-      secondes.
-    </p>
-    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-      <a href="/create" class="btn btn-primary btn-lg px-4 gap-3"
-        >Créer une histoire</a
-      >
-      <a href="/login" class="btn btn-outline-secondary btn-lg px-4"
-        >Se connecter</a
-      >
+<!-- Hero Section -->
+<div class="hero-section">
+  <h1 class="hero-title">✨ Bienvenue sur Ether Stories ✨</h1>
+  <p class="hero-subtitle">
+    Créez des histoires magiques pour vos enfants grâce à l'intelligence
+    artificielle. Narration, illustrations et audio générés en quelques
+    secondes.
+  </p>
+  <div class="d-flex gap-3 justify-content-center flex-wrap">
+    <a href="/create" class="btn btn-magical-primary btn-lg px-5">
+      <i class="bi bi-stars"></i> Créer une histoire
+    </a>
+    <a href="/login" class="btn btn-outline-magical btn-lg px-4">
+      <i class="bi bi-person"></i> Se connecter
+    </a>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div class="row g-4 mt-5 mb-5">
+  <div class="col-md-4">
+    <div class="feature-card h-100">
+      <div class="feature-icon">📖</div>
+      <h4 class="feature-title">Histoires Personnalisées</h4>
+      <p class="feature-text">
+        Des histoires uniques adaptées à l'âge et aux intérêts de votre enfant
+      </p>
     </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card h-100">
+      <div class="feature-icon">🎨</div>
+      <h4 class="feature-title">Illustrations Magiques</h4>
+      <p class="feature-text">
+        Chaque chapitre illustré par notre IA pour donner vie à l'aventure
+      </p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card h-100">
+      <div class="feature-icon">🔊</div>
+      <h4 class="feature-title">Narration Audio</h4>
+      <p class="feature-text">
+        Écoutez l'histoire en plusieurs langues : Français, Anglais, Chinois
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Call to Action -->
+<div class="text-center mt-5 mb-4">
+  <div class="feature-card mx-auto" style="max-width: 500px">
+    <div class="feature-icon">🏰</div>
+    <h4 class="feature-title">Prêt pour l'aventure ?</h4>
+    <p class="feature-text mb-3">
+      Laissez la magie opérer et créez des souvenirs inoubliables
+    </p>
+    <a href="/signup" class="btn btn-magical-secondary">
+      <i class="bi bi-rocket-takeoff"></i> Commencer maintenant
+    </a>
   </div>
 </div>
 {% endblock %}
