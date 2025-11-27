@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, Cookie, Depends
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from app.core.graph.workflow import story_graph
@@ -8,9 +8,11 @@ from jose import jwt, JWTError
 from app.core.config import settings
 from app.db.session import get_session
 from app.db.models import User, Story, Chapter, StoryStatus, ChapterStatus
+from app.agents.translator.translator import traduire_chapitre, get_language_name, SUPPORTED_LANGUAGES
 from sqlmodel import Session, select
 import uuid
 import asyncio
+import json
 
 # Setup Templates
 # This points to the 'app/templates' folder
@@ -215,7 +217,12 @@ async def get_story_status(job_id: str):
     }
 
 @router.get("/story/{job_id}")
-async def view_story(request: Request, job_id: str, session: Session = Depends(get_session)):
+async def view_story(
+    request: Request,
+    job_id: str,
+    lang: Optional[str] = None,
+    session: Session = Depends(get_session)
+):
     job = story_jobs.get(job_id)
     
     # If job exists and has story_id, load from database
@@ -227,22 +234,41 @@ async def view_story(request: Request, job_id: str, session: Session = Depends(g
                 select(Chapter).where(Chapter.story_id == story_id).order_by(Chapter.chapter_number)
             ).all()
             
+            # Get available translations
+            available_translations = []
+            if chapters and chapters[0].translations:
+                available_translations = list(chapters[0].translations.keys())
+            
             # Format for template (match existing structure)
             story_data = {
                 "plan": story.plan_data,
                 "generated_chapters": [
                     {
                         "numero": ch.chapter_number,
-                        "titre": ch.title,
+                        "titre": (
+                            ch.translations[lang]["translated_title"] 
+                            if (lang and ch.translations and lang in ch.translations and isinstance(ch.translations[lang], dict)) 
+                            else ch.title
+                        ),
                         "resume": ch.summary_prompt,
-                        "contenu": ch.text_content,
+                        "contenu": (
+                            ch.translations[lang]["translated_content"] 
+                            if (lang and ch.translations and lang in ch.translations and isinstance(ch.translations[lang], dict)) 
+                            else (ch.translations[lang] if (lang and ch.translations and lang in ch.translations and isinstance(ch.translations[lang], str)) else ch.text_content)
+                        ),
                         "image_path": ch.image_url,
                         "audio_path": ch.audio_url
                     }
                     for ch in chapters
                 ]
             }
-            return templates.TemplateResponse("story.html", {"request": request, "story": story_data})
+            return templates.TemplateResponse("story.html", {
+                "request": request,
+                "story": story_data,
+                "current_lang": lang,
+                "available_translations": available_translations,
+                "story_id": story_id
+            })
     
     # Fallback to in-memory job data
     if not job or job["status"] != "completed":
@@ -255,6 +281,7 @@ async def view_story(request: Request, job_id: str, session: Session = Depends(g
 async def view_story_by_id(
     request: Request,
     story_id: int,
+    lang: Optional[str] = None,
     session: Session = Depends(get_session)
 ):
     """View a story directly from database by its ID"""
@@ -278,15 +305,28 @@ async def view_story_by_id(
         select(Chapter).where(Chapter.story_id == story_id).order_by(Chapter.chapter_number)
     ).all()
     
+    # Get available translations
+    available_translations = []
+    if chapters and chapters[0].translations:
+        available_translations = list(chapters[0].translations.keys())
+    
     # Format for template
     story_data = {
         "plan": story.plan_data,
         "generated_chapters": [
             {
                 "numero": ch.chapter_number,
-                "titre": ch.title,
+                "titre": (
+                    ch.translations[lang]["translated_title"] 
+                    if (lang and ch.translations and lang in ch.translations and isinstance(ch.translations[lang], dict)) 
+                    else ch.title
+                ),
                 "resume": ch.summary_prompt,
-                "contenu": ch.text_content,
+                "contenu": (
+                    ch.translations[lang]["translated_content"] 
+                    if (lang and ch.translations and lang in ch.translations and isinstance(ch.translations[lang], dict)) 
+                    else (ch.translations[lang] if (lang and ch.translations and lang in ch.translations and isinstance(ch.translations[lang], str)) else ch.text_content)
+                ),
                 "image_path": ch.image_url,
                 "audio_path": ch.audio_url
             }
@@ -294,4 +334,122 @@ async def view_story_by_id(
         ]
     }
     
-    return templates.TemplateResponse("story.html", {"request": request, "story": story_data})
+    return templates.TemplateResponse("story.html", {
+        "request": request,
+        "story": story_data,
+        "current_lang": lang,
+        "available_translations": available_translations,
+        "story_id": story_id
+    })
+
+# Translation endpoints
+@router.post("/api/story/{story_id}/translate")
+async def translate_story(
+    story_id: int,
+    lang: str,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user_from_cookie),
+    session: Session = Depends(get_session)
+):
+    """Translate a story to target language"""
+    
+    # Validate language
+    if lang not in SUPPORTED_LANGUAGES:
+        raise HTTPException(status_code=400, detail=f"Unsupported language: {lang}")
+    
+    # Get story and verify ownership
+    story = session.get(Story, story_id)
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+    
+    if story.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Check if translation already exists
+    chapters = session.exec(
+        select(Chapter).where(Chapter.story_id == story_id).order_by(Chapter.chapter_number)
+    ).all()
+    
+    if chapters and chapters[0].translations and lang in chapters[0].translations:
+        return {"status": "already_translated", "language": lang}
+    
+    # Start translation in background
+    background_tasks.add_task(translate_story_task, story_id, lang)
+    
+    return {"status": "translating", "language": lang, "story_id": story_id}
+
+async def translate_story_task(story_id: int, lang: str):
+    """Background task to translate all chapters"""
+    try:
+        from app.db.session import engine
+        from sqlalchemy.orm.attributes import flag_modified
+        
+        with Session(engine) as session:
+            chapters = session.exec(
+                select(Chapter).where(Chapter.story_id == story_id).order_by(Chapter.chapter_number)
+            ).all()
+            
+            language_name = get_language_name(lang)
+            
+            for chapter in chapters:
+                try:
+                    # Translate chapter
+                    translation = traduire_chapitre(
+                        chapter_number=chapter.chapter_number,
+                        title=chapter.title,
+                        content=chapter.text_content or "",
+                        langue_cible=language_name
+                    )
+                    
+                    # Update translations field - create new dict to trigger change detection
+                    if not chapter.translations:
+                        chapter.translations = {}
+                    
+                    # Create new dict and assign to trigger SQLAlchemy change detection
+                    new_translations = dict(chapter.translations)
+                    new_translations[lang] = translation
+                    chapter.translations = new_translations
+                    
+                    # Flag as modified for SQLAlchemy JSON column
+                    flag_modified(chapter, "translations")
+                    
+                    session.add(chapter)
+                    print(f"Translated chapter {chapter.chapter_number} to {language_name}")
+                    
+                except Exception as e:
+                    print(f"Error translating chapter {chapter.chapter_number}: {e}")
+                    continue
+            
+            session.commit()
+            print(f"Story {story_id} fully translated to {language_name}")
+            
+    except Exception as e:
+        print(f"Translation task failed for story {story_id}: {e}")
+        import traceback
+        traceback.print_exc()
+
+@router.get("/api/story/{story_id}/translations")
+async def get_story_translations(
+    story_id: int,
+    session: Session = Depends(get_session)
+):
+    """Get available translations for a story"""
+    chapters = session.exec(
+        select(Chapter).where(Chapter.story_id == story_id).limit(1)
+    ).first()
+    
+    if not chapters:
+        return {"translations": []}
+    
+    available_langs = list(chapters.translations.keys()) if chapters.translations else []
+    
+    return {
+        "translations": [
+            {"code": lang, "name": get_language_name(lang)}
+            for lang in available_langs
+        ],
+        "supported_languages": [
+            {"code": code, "name": name}
+            for code, name in SUPPORTED_LANGUAGES.items()
+        ]
+    }
