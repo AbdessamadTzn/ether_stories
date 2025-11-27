@@ -97,3 +97,36 @@ class Chapter(SQLModel, table=True):
     
     status: ChapterStatus = Field(default=ChapterStatus.PENDING)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# --- CARBON EMISSION TRACKING ---
+
+class OperationType(str, Enum):
+    STORY_GENERATION = "story_generation"
+    TRANSLATION = "translation"
+    TTS = "tts"
+    IMAGE_GENERATION = "image_generation"
+
+class CarbonEmission(SQLModel, table=True):
+    """Track CO2 emissions from AI operations"""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    # Foreign Keys
+    user_id: int = Field(foreign_key="user.id", index=True)
+    story_id: Optional[int] = Field(default=None, foreign_key="story.id")
+    
+    # Operation details
+    operation_type: OperationType
+    operation_details: Optional[str] = None  # e.g., "chapter_1", "translate_en"
+    
+    # Emission data from CodeCarbon
+    emissions_kg: float = Field(default=0.0)  # CO2 in kilograms
+    energy_kwh: float = Field(default=0.0)    # Energy consumed in kWh
+    duration_seconds: float = Field(default=0.0)
+    
+    # Additional context
+    cpu_power: Optional[float] = None  # Watts
+    gpu_power: Optional[float] = None  # Watts
+    country_iso_code: Optional[str] = None  # e.g., "FRA"
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
