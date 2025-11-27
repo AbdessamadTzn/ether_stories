@@ -1,0 +1,340 @@
+{% extends "base.html" %} {% block title %}Logs - Admin - Ether Stories{%
+endblock %} {% block content %}
+<div class="container-fluid mt-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="display-6 text-magical-gold">
+        <i class="bi bi-journal-text"></i> Logs Système
+      </h1>
+      <p class="text-muted">Consultez les logs de l'application</p>
+    </div>
+    <a href="/admin" class="btn btn-outline-warning">
+      <i class="bi bi-arrow-left"></i> Retour au Dashboard
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <!-- Log Files List -->
+    <div class="col-md-4">
+      <div
+        class="card"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div
+          class="card-header"
+          style="
+            background: rgba(255, 215, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
+          <h5 class="mb-0 text-magical-gold">
+            <i class="bi bi-folder"></i> Fichiers de Log
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          {% if log_files %}
+          <div class="list-group list-group-flush">
+            {% for log in log_files %}
+            <button
+              type="button"
+              class="list-group-item list-group-item-action d-flex justify-content-between align-items-center log-file-btn"
+              style="
+                background: transparent;
+                border-color: rgba(255, 215, 0, 0.1);
+                color: #fff;
+              "
+              data-filename="{{ log.name }}"
+              onclick="loadLog('{{ log.name }}')"
+            >
+              <div>
+                <i class="bi bi-file-text text-warning"></i>
+                <span class="ms-2">{{ log.name }}</span>
+                <br />
+                <small class="text-muted">{{ log.modified }}</small>
+              </div>
+              <span class="badge bg-secondary">{{ log.size_kb }} KB</span>
+            </button>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <i
+              class="bi bi-inbox"
+              style="font-size: 2rem; color: var(--magic-cyan)"
+            ></i>
+            <p class="text-muted mt-2">Aucun fichier de log trouvé</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div
+        class="card mt-4"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div
+          class="card-header"
+          style="
+            background: rgba(255, 215, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
+          <h5 class="mb-0 text-magical-gold">
+            <i class="bi bi-info-circle"></i> Info
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="mb-2"><strong>Fichiers:</strong> {{ log_files|length }}</p>
+          <p class="mb-2"><strong>Dossier:</strong> <code>/logs/</code></p>
+          <hr style="border-color: rgba(255, 215, 0, 0.2)" />
+          <div class="d-grid">
+            <button class="btn btn-outline-info btn-sm" onclick="refreshLogs()">
+              <i class="bi bi-arrow-clockwise"></i> Actualiser
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Content Viewer -->
+    <div class="col-md-8">
+      <div
+        class="card"
+        style="
+          background: rgba(45, 45, 109, 0.85);
+          border: 1px solid rgba(255, 215, 0, 0.2);
+        "
+      >
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+          style="
+            background: rgba(255, 215, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
+          <h5 class="mb-0 text-magical-gold">
+            <i class="bi bi-terminal"></i>
+            <span id="logTitle">Sélectionnez un fichier</span>
+          </h5>
+          <div class="btn-group btn-group-sm">
+            <select
+              id="lineCount"
+              class="form-select form-select-sm"
+              style="
+                width: auto;
+                background: rgba(0, 0, 0, 0.3);
+                color: #fff;
+                border-color: rgba(255, 215, 0, 0.3);
+              "
+            >
+              <option value="100">100 lignes</option>
+              <option value="200" selected>200 lignes</option>
+              <option value="500">500 lignes</option>
+              <option value="1000">1000 lignes</option>
+            </select>
+            <button
+              class="btn btn-outline-success"
+              id="refreshLogBtn"
+              onclick="refreshCurrentLog()"
+              disabled
+            >
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button
+              class="btn btn-outline-warning"
+              id="downloadLogBtn"
+              onclick="downloadLog()"
+              disabled
+            >
+              <i class="bi bi-download"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div
+            id="logContent"
+            class="log-viewer"
+            style="
+              height: 600px;
+              overflow-y: auto;
+              font-family: 'Fira Code', 'Consolas', monospace;
+              font-size: 12px;
+              padding: 15px;
+              background: rgba(0, 0, 0, 0.3);
+            "
+          >
+            <div class="text-center py-5 text-muted">
+              <i class="bi bi-arrow-left-circle" style="font-size: 3rem"></i>
+              <p class="mt-3">
+                Cliquez sur un fichier à gauche pour voir son contenu
+              </p>
+            </div>
+          </div>
+        </div>
+        <div
+          class="card-footer text-muted"
+          style="
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid rgba(255, 215, 0, 0.2);
+          "
+        >
+          <small id="logInfo">-</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .log-viewer {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: #e0e0e0;
+  }
+
+  .log-viewer .log-error {
+    color: #ff6b6b;
+  }
+
+  .log-viewer .log-warning {
+    color: #feca57;
+  }
+
+  .log-viewer .log-info {
+    color: #54a0ff;
+  }
+
+  .log-viewer .log-debug {
+    color: #a0a0a0;
+  }
+
+  .log-viewer .log-timestamp {
+    color: #00d2d3;
+  }
+
+  .log-file-btn:hover {
+    background: rgba(255, 215, 0, 0.1) !important;
+  }
+
+  .log-file-btn.active {
+    background: rgba(255, 215, 0, 0.2) !important;
+    border-left: 3px solid var(--magic-gold) !important;
+  }
+</style>
+
+<script>
+  let currentLogFile = null;
+
+  async function loadLog(filename) {
+    currentLogFile = filename;
+    const lines = document.getElementById('lineCount').value;
+
+    // Update UI
+    document.getElementById('logTitle').textContent = filename;
+    document.getElementById('logContent').innerHTML =
+      '<div class="text-center py-5"><div class="spinner-border text-warning"></div><p class="mt-2">Chargement...</p></div>';
+    document.getElementById('refreshLogBtn').disabled = false;
+    document.getElementById('downloadLogBtn').disabled = false;
+
+    // Update active state
+    document
+      .querySelectorAll('.log-file-btn')
+      .forEach((btn) => btn.classList.remove('active'));
+    document
+      .querySelector(`[data-filename="${filename}"]`)
+      ?.classList.add('active');
+
+    try {
+      const response = await fetch(
+        `/admin/api/logs/${filename}?lines=${lines}`,
+        { credentials: 'include' }
+      );
+      if (!response.ok) throw new Error('Failed to load log');
+
+      const data = await response.json();
+
+      // Syntax highlight the log content
+      const highlighted = highlightLog(data.content);
+      document.getElementById('logContent').innerHTML = highlighted;
+      document.getElementById(
+        'logInfo'
+      ).textContent = `Affichage: ${data.showing_lines} / ${data.total_lines} lignes`;
+
+      // Scroll to bottom
+      const logViewer = document.getElementById('logContent');
+      logViewer.scrollTop = logViewer.scrollHeight;
+    } catch (error) {
+      document.getElementById(
+        'logContent'
+      ).innerHTML = `<div class="text-center py-5 text-danger"><i class="bi bi-exclamation-triangle" style="font-size: 2rem;"></i><p class="mt-2">Erreur de chargement: ${error.message}</p></div>`;
+    }
+  }
+
+  function highlightLog(content) {
+    // Escape HTML
+    let html = content
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Highlight timestamps (various formats)
+    html = html.replace(
+      /(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[,.]?\d*)/g,
+      '<span class="log-timestamp">$1</span>'
+    );
+
+    // Highlight log levels
+    html = html.replace(
+      /\b(ERROR|CRITICAL|FATAL)\b/gi,
+      '<span class="log-error">$1</span>'
+    );
+    html = html.replace(
+      /\b(WARNING|WARN)\b/gi,
+      '<span class="log-warning">$1</span>'
+    );
+    html = html.replace(/\b(INFO)\b/gi, '<span class="log-info">$1</span>');
+    html = html.replace(/\b(DEBUG)\b/gi, '<span class="log-debug">$1</span>');
+
+    return html;
+  }
+
+  function refreshCurrentLog() {
+    if (currentLogFile) {
+      loadLog(currentLogFile);
+    }
+  }
+
+  function refreshLogs() {
+    location.reload();
+  }
+
+  function downloadLog() {
+    if (currentLogFile) {
+      // Create a download link
+      const content = document.getElementById('logContent').textContent;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentLogFile;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  // Auto-refresh on line count change
+  document.getElementById('lineCount').addEventListener('change', () => {
+    if (currentLogFile) {
+      loadLog(currentLogFile);
+    }
+  });
+</script>
+{% endblock %}
