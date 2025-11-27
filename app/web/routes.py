@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Request, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, Cookie, Depends
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from app.core.graph.workflow import story_graph
 from typing import Optional
+from jose import jwt, JWTError
+from app.core.config import settings
 import uuid
 import asyncio
 
@@ -15,6 +18,25 @@ router = APIRouter()
 
 # In-memory store for demo purposes (replace with DB in prod)
 story_jobs = {}
+
+# Authentication dependency
+async def get_current_user_from_cookie(request: Request):
+    """
+    Check if user is authenticated by validating JWT token from cookie.
+    Returns user email if authenticated, raises HTTPException otherwise.
+    """
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return email
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.get("/")
 async def home(request: Request):
@@ -36,7 +58,20 @@ async def dashboard(request: Request):
 
 @router.get("/create")
 async def create_story_page(request: Request):
-    return templates.TemplateResponse("create.html", {"request": request})
+    # Check if user has a valid token
+    token = request.cookies.get("access_token")
+    if not token:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            return RedirectResponse(url="/login", status_code=302)
+    except JWTError:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    return templates.TemplateResponse("create.html", {"request": request, "user_email": email})
 
 @router.post("/api/story/generate")
 async def generate_story_api(
@@ -44,7 +79,8 @@ async def generate_story_api(
     age: int,
     topic: str,
     moral: Optional[str] = "Amitié",
-    duration: Optional[int] = 5
+    duration: Optional[int] = 5,
+    current_user: str = Depends(get_current_user_from_cookie)
 ):
     job_id = str(uuid.uuid4())
     
