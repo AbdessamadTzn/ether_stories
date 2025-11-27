@@ -51,21 +51,17 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto" id="navbarLinks">
-            <li class="nav-item">
-              <a class="nav-link" href="/create"
-                ><i class="bi bi-magic"></i> Créer</a
-              >
-            </li>
+            <!-- Dynamic links added by JS when logged in -->
           </ul>
           <ul class="navbar-nav ms-auto" id="navbarUser">
             <li class="nav-item">
-              <a class="nav-link" href="/login">Login</a>
+              <a class="nav-link" href="/login">Connexion</a>
             </li>
             <li class="nav-item">
               <a
                 class="nav-link btn btn-magical-primary text-white ms-2"
                 href="/signup"
-                >Sign Up</a
+                >S'inscrire</a
               >
             </li>
           </ul>
@@ -93,9 +89,12 @@
 
       const token = getCookie('access_token');
       if (token) {
-        // User is logged in - add My Stories link and logout button
+        // User is logged in - add navigation links
         const navbarLinks = document.getElementById('navbarLinks');
-        navbarLinks.innerHTML += `
+        navbarLinks.innerHTML = `
+          <li class="nav-item">
+            <a class="nav-link" href="/create"><i class="bi bi-magic"></i> Créer une histoire</a>
+          </li>
           <li class="nav-item">
             <a class="nav-link" href="/my-stories"><i class="bi bi-book"></i> Mes Histoires</a>
           </li>
@@ -110,7 +109,7 @@
             <span class="nav-link user-badge"><i class="bi bi-person-circle"></i> Connecté</span>
           </li>
           <li class="nav-item">
-            <a class="nav-link btn btn-outline-magical ms-2" href="#" onclick="logout()">Logout</a>
+            <a class="nav-link btn btn-outline-magical ms-2" href="#" onclick="logout()">Déconnexion</a>
           </li>
         `;
       }
