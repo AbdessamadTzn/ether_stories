@@ -47,7 +47,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = D
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Create Token
-    access_token = create_access_token(data={"sub": user.email})
-    logger.info(f"User logged in: {user.email} (id: {user.id})")
+    # Create Token with role included
+    access_token = create_access_token(data={
+        "sub": user.email,
+        "role": user.role.value if hasattr(user.role, 'value') else user.role
+    })
+    logger.info(f"User logged in: {user.email} (id: {user.id}, role: {user.role})")
     return {"access_token": access_token, "token_type": "bearer"}
