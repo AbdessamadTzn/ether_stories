@@ -6,6 +6,75 @@
       {{ story.plan.plan.type_histoire }} • {{ story.plan.plan.duree_estimee }}
       min
     </p>
+
+    <!-- Language Viewing Controls -->
+    {% if available_translations %}
+    <div class="mt-3">
+      <span class="badge bg-info me-2">
+        {% if current_lang %} {% if current_lang == 'en' %}🇬🇧 English {% elif
+        current_lang == 'ar' %}🇸🇦 Arabic {% elif current_lang == 'zh' %}🇨🇳
+        Chinese {% elif current_lang == 'es' %}🇪🇸 Spanish {% elif current_lang
+        == 'de' %}🇩🇪 German {% elif current_lang == 'pt' %}🇧🇷 Portuguese {% elif
+        current_lang == 'ru' %}🇷🇺 Russian {% elif current_lang == 'ja' %}🇯🇵
+        Japanese {% elif current_lang == 'ko' %}🇰🇷 Korean {% elif current_lang
+        == 'it' %}🇮🇹 Italian {% endif %} {% else %} 🇫🇷 Original (French) {%
+        endif %}
+      </span>
+
+      <div class="btn-group" role="group">
+        <button
+          type="button"
+          class="btn btn-sm btn-primary dropdown-toggle"
+          data-bs-toggle="dropdown"
+        >
+          📖 View Language
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="?">🇫🇷 Original (French)</a></li>
+          <li><hr class="dropdown-divider" /></li>
+          {% for lang in available_translations %}
+          <li>
+            <a class="dropdown-item" href="?lang={{ lang }}">
+              {% if lang == 'en' %}🇬🇧 English {% elif lang == 'ar' %}🇸🇦 Arabic
+              {% elif lang == 'zh' %}🇨🇳 Chinese {% elif lang == 'es' %}🇪🇸
+              Spanish {% elif lang == 'de' %}🇩🇪 German {% elif lang == 'pt' %}🇧🇷
+              Portuguese {% elif lang == 'ru' %}🇷🇺 Russian {% elif lang == 'ja'
+              %}🇯🇵 Japanese {% elif lang == 'ko' %}🇰🇷 Korean {% elif lang ==
+              'it' %}🇮🇹 Italian {% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Translation Controls -->
+    <div class="mt-3">
+      <div class="btn-group" role="group">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-secondary dropdown-toggle"
+          data-bs-toggle="dropdown"
+        >
+          🌐 Translate Story
+        </button>
+        <ul class="dropdown-menu">
+          <li>
+            <a class="dropdown-item translate-btn" href="#" data-lang="en"
+              >🇬🇧 English</a
+            >
+          </li>
+          <li>
+            <a class="dropdown-item translate-btn" href="#" data-lang="zh"
+              >🇨🇳 Chinese</a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="translationStatus" class="mt-2"></div>
   </div>
 
   <div class="row justify-content-center">
@@ -41,11 +110,66 @@
       {% endfor %}
 
       <div class="text-center mb-5">
+        <a href="/my-stories" class="btn btn-outline-secondary btn-lg me-2"
+          >📚 My Stories</a
+        >
         <a href="/create" class="btn btn-outline-primary btn-lg"
-          >Créer une autre histoire</a
+          >✨ Create Another</a
         >
       </div>
     </div>
   </div>
 </div>
+
+<script>
+  // Get story ID from URL
+  const storyId = window.location.pathname.split('/').pop();
+
+  // Translation functionality
+  document.querySelectorAll('.translate-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const lang = e.target.dataset.lang;
+      const statusDiv = document.getElementById('translationStatus');
+
+      statusDiv.innerHTML = `
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span class="ms-2">Translating to ${e.target.textContent}...</span>
+      `;
+
+      try {
+        const response = await fetch(
+          `/api/story/${storyId}/translate?lang=${lang}`,
+          {
+            method: 'POST',
+            credentials: 'include',
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          if (data.status === 'already_translated') {
+            statusDiv.innerHTML = `
+              <div class="alert alert-info">Already translated! Reload page to view.</div>
+            `;
+          } else {
+            statusDiv.innerHTML = `
+              <div class="alert alert-success">
+                Translation started! This may take 1-2 minutes. Refresh the page after completion.
+              </div>
+            `;
+          }
+        } else {
+          throw new Error(data.detail || 'Translation failed');
+        }
+      } catch (error) {
+        statusDiv.innerHTML = `
+          <div class="alert alert-danger">Error: ${error.message}</div>
+        `;
+      }
+    });
+  });
+</script>
+
 {% endblock %}

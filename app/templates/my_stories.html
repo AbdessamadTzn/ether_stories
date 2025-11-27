@@ -43,6 +43,36 @@
             >
               📖 Read Story
             </a>
+
+            <div class="btn-group" role="group">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                data-bs-toggle="dropdown"
+              >
+                🌐 Translate
+              </button>
+              <ul class="dropdown-menu">
+                <li>
+                  <a
+                    class="dropdown-item translate-story"
+                    href="#"
+                    data-story-id="{{ story.id }}"
+                    data-lang="en"
+                    >🇬🇧 English</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item translate-story"
+                    href="#"
+                    data-story-id="{{ story.id }}"
+                    data-lang="zh"
+                    >🇨🇳 Chinese</a
+                  >
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -82,4 +112,51 @@
   </div>
   {% endif %}
 </div>
+
+<script>
+  // Translation functionality
+  document.querySelectorAll('.translate-story').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const storyId = e.target.dataset.storyId;
+      const lang = e.target.dataset.lang;
+      const langName = e.target.textContent.trim();
+
+      if (
+        !confirm(
+          `Translate this story to ${langName}? This may take 1-2 minutes.`
+        )
+      ) {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/story/${storyId}/translate?lang=${lang}`,
+          {
+            method: 'POST',
+            credentials: 'include',
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          if (data.status === 'already_translated') {
+            alert(`This story is already translated to ${langName}!`);
+          } else {
+            alert(
+              `Translation started! Check back in 1-2 minutes and reload the page.`
+            );
+          }
+        } else {
+          throw new Error(data.detail || 'Translation failed');
+        }
+      } catch (error) {
+        alert(`Error: ${error.message}`);
+      }
+    });
+  });
+</script>
+
 {% endblock %}
