@@ -87,11 +87,24 @@
         if (parts.length === 2) return parts.pop().split(';').shift();
       }
 
+      // Decode JWT to get user role (simple base64 decode of payload)
+      function decodeJWT(token) {
+        try {
+          const payload = token.split('.')[1];
+          return JSON.parse(atob(payload));
+        } catch (e) {
+          return null;
+        }
+      }
+
       const token = getCookie('access_token');
       if (token) {
+        const decoded = decodeJWT(token);
+        const isAdmin = decoded && decoded.role === 'admin';
+
         // User is logged in - add navigation links
         const navbarLinks = document.getElementById('navbarLinks');
-        navbarLinks.innerHTML = `
+        let linksHtml = `
           <li class="nav-item">
             <a class="nav-link" href="/create"><i class="bi bi-magic"></i> Créer une histoire</a>
           </li>
@@ -102,11 +115,22 @@
             <a class="nav-link" href="/carbon-dashboard"><i class="bi bi-leaf"></i> CO₂</a>
           </li>
         `;
+        
+        // Add admin link if user is admin
+        if (isAdmin) {
+          linksHtml += `
+            <li class="nav-item">
+              <a class="nav-link text-warning" href="/admin"><i class="bi bi-shield-lock"></i> Admin</a>
+            </li>
+          `;
+        }
+        
+        navbarLinks.innerHTML = linksHtml;
 
         const navbarUser = document.getElementById('navbarUser');
         navbarUser.innerHTML = `
           <li class="nav-item">
-            <span class="nav-link user-badge"><i class="bi bi-person-circle"></i> Connecté</span>
+            <span class="nav-link user-badge"><i class="bi bi-person-circle"></i> ${isAdmin ? '👑 Admin' : 'Connecté'}</span>
           </li>
           <li class="nav-item">
             <a class="nav-link btn btn-outline-magical ms-2" href="#" onclick="logout()">Déconnexion</a>
