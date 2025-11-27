@@ -1,22 +1,119 @@
-fastapi                     # The web framework
-uvicorn[standard]          # The server that runs the app
-python-multipart            # Required for the Login Form (OAuth2)
-python-dotenv               # To read your .env file (secrets)
-requests                    # To make HTTP calls (used by Streamlit/Agents)
-
-sqlmodel                    # The ORM (Pydantic + SQLAlchemy)
-psycopg2-binary            # The driver that lets Python talk to PostgreSQL
-alembic                     # (Optional but good) For database migrations later
-
-passlib[bcrypt]            # To hash passwords (security)
-python-jose[cryptography]   # To generate and verify JWT tokens
-
-
-sqladmin                    # The instant Admin Dashboard
-wtforms                     # Required by sqladmin for forms
-
-
-langchain                   # The framework for Agent logic
-langchain-groq              # The integration for Groq LLMs
-langchain-community         # Extra tools for LangChain
-mcp                         # The Model Context Protocol SDK
+aiohappyeyeballs==2.6.1
+aiohttp==3.13.2
+aiosignal==1.4.0
+alembic==1.17.2
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.11.0
+arrow==1.4.0
+attrs==25.4.0
+bcrypt==3.2.2
+certifi==2025.11.12
+cffi==2.0.0
+charset-normalizer==3.4.4
+click==8.3.1
+codecarbon==3.1.1
+cryptography==46.0.3
+dataclasses-json==0.6.7
+distro==1.9.0
+ecdsa==0.19.1
+elevenlabs==2.24.0
+fastapi==0.121.3
+fief-client==0.20.0
+frozenlist==1.8.0
+greenlet==3.2.4
+groq==0.36.0
+h11==0.16.0
+httpcore==1.0.9
+httptools==0.7.1
+httpx==0.27.2
+httpx-sse==0.4.3
+idna==3.11
+iniconfig==2.3.0
+Jinja2==3.1.6
+jsonpatch==1.33
+jsonpointer==3.0.0
+jsonschema==4.25.1
+jsonschema-specifications==2025.9.1
+jwcrypto==1.5.6
+langchain==1.0.8
+langchain-classic==1.0.0
+langchain-community==0.4.1
+langchain-core==1.0.7
+langchain-groq==1.0.1
+langchain-text-splitters==1.0.0
+langgraph==1.0.3
+langgraph-checkpoint==3.0.1
+langgraph-prebuilt==1.0.4
+langgraph-sdk==0.2.9
+langsmith==0.4.44
+Mako==1.3.10
+markdown-it-py==4.0.0
+MarkupSafe==3.0.3
+marshmallow==3.26.1
+mcp==1.22.0
+mdurl==0.1.2
+multidict==6.7.0
+mypy_extensions==1.1.0
+numpy==2.3.5
+nvidia-ml-py==13.580.82
+orjson==3.11.4
+ormsgpack==1.12.0
+packaging==25.0
+pandas==2.3.3
+passlib==1.7.4
+pluggy==1.6.0
+prometheus_client==0.23.1
+prompt_toolkit==3.0.52
+propcache==0.4.1
+psutil==7.1.3
+psycopg2-binary==2.9.11
+py-cpuinfo==9.0.0
+pyasn1==0.6.1
+pycparser==2.23
+pydantic==2.12.4
+pydantic-settings==2.12.0
+pydantic_core==2.41.5
+Pygments==2.19.2
+PyJWT==2.10.1
+pytest==9.0.1
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.1
+python-jose==3.5.0
+python-multipart==0.0.20
+pytz==2025.2
+PyYAML==6.0.3
+questionary==2.1.1
+RapidFuzz==3.14.3
+referencing==0.37.0
+requests==2.32.5
+requests-toolbelt==1.0.0
+rich==14.2.0
+rpds-py==0.29.0
+rsa==4.9.1
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+sqladmin==0.22.0
+SQLAlchemy==2.0.44
+sqlmodel==0.0.27
+sse-starlette==3.0.3
+starlette==0.50.0
+tenacity==9.1.2
+termcolor==3.2.0
+typer==0.20.0
+typing-inspect==0.9.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+tzdata==2025.2
+urllib3==2.5.0
+uvicorn==0.38.0
+uvloop==0.22.1
+watchfiles==1.1.1
+wcwidth==0.2.14
+websockets==15.0.1
+WTForms==3.1.2
+xxhash==3.6.0
+yarl==1.22.0
+yaspin==3.3.0
+zstandard==0.25.0
