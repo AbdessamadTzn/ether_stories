@@ -6,6 +6,9 @@ from app.agents.narrative.moderator import verify_coherence
 from app.agents.narrative.painter import generate_image
 from app.agents.speech.text_to_speech import generate_audio
 from app.agents.speech.speech_to_text import transcribe_audio
+from app.core.logger import get_logger
+
+logger = get_logger("workflow")
 
 # --- NODES ---
 
@@ -17,10 +20,13 @@ def input_processing_node(state: StoryState) -> StoryState:
     audio_path = user_input.get("audio_file")
     
     if audio_path:
+        logger.info(f"Processing audio input: {audio_path}")
         result = transcribe_audio(audio_path)
         if "text" in result:
+            logger.info("Audio transcription successful")
             return {"transcription": result["text"]}
         else:
+            logger.error(f"Transcription failed: {result.get('error')}")
             return {"error": f"Transcription failed: {result.get('error')}"}
     
     return {}
@@ -29,9 +35,14 @@ def manager_node(state: StoryState) -> StoryState:
     """
     Generates the story plan.
     """
+    logger.info("Starting story plan generation")
     result = create_story_plan(state)
     if "error" in result:
+        logger.error(f"Plan generation failed: {result['error']}")
         return {"error": result["error"]}
+    
+    chapter_count = len(result["plan"].get("chapitres", []))
+    logger.info(f"Story plan created: {result['plan'].get('plan', {}).get('titre', 'Untitled')} with {chapter_count} chapters")
     
     return {
         "plan": result["plan"],
@@ -47,6 +58,7 @@ def writer_node(state: StoryState) -> StoryState:
     plan = state["plan"]
     index = state["current_chapter_index"]
     chapter_info = plan["chapitres"][index]
+    logger.info(f"Writing chapter {index + 1}: {chapter_info.get('titre', 'Untitled')}")
     
     # Construct prompt
     prompt = f"""
@@ -72,6 +84,9 @@ def moderator_node(state: StoryState) -> StoryState:
     """
     content = state["current_chapter_content"]
     plan = state["plan"]
+    index = state["current_chapter_index"]
+    
+    logger.info(f"Moderating chapter {index + 1}")
     
     context = {
         "age": plan["plan"]["age_cible"],
@@ -81,24 +96,28 @@ def moderator_node(state: StoryState) -> StoryState:
     result = verify_coherence(content, context)
     
     if result["coherent"]:
+        logger.info(f"Chapter {index + 1} passed moderation")
         return {"error": None}
     else:
         # Use user-friendly message if available, otherwise fall back to technical reason
         error_msg = result.get("user_message") or result.get("reason") or "Contenu inapproprié détecté."
+        logger.warning(f"Chapter {index + 1} failed moderation: {error_msg}")
         return {"error": error_msg}
 
 def painter_node(state: StoryState) -> StoryState:
     """
     Generates an image for the chapter.
     """
-    content = state["current_chapter_content"]
     plan = state["plan"]
     index = state["current_chapter_index"]
     chapter_info = plan["chapitres"][index]
     
+    logger.info(f"Generating image for chapter {index + 1}")
+    
     prompt = f"Illustration pour enfant: {chapter_info['titre']}. {chapter_info['resume']}"
     
     image_path = generate_image(prompt, chapter_info['numero'])
+    logger.info(f"Image generated: {image_path}")
     return {"current_chapter_image": image_path}
 
 def narrator_node(state: StoryState) -> StoryState:
@@ -109,7 +128,10 @@ def narrator_node(state: StoryState) -> StoryState:
     index = state["current_chapter_index"]
     chapter_info = state["plan"]["chapitres"][index]
     
+    logger.info(f"Generating audio for chapter {index + 1}")
+    
     audio_path = generate_audio(content, chapter_info['numero'])
+    logger.info(f"Audio generated: {audio_path}")
     return {"current_chapter_audio": audio_path}
 
 def chapter_finalize_node(state: StoryState) -> StoryState:
@@ -119,6 +141,8 @@ def chapter_finalize_node(state: StoryState) -> StoryState:
     plan = state["plan"]
     index = state["current_chapter_index"]
     chapter_info = plan["chapitres"][index]
+    
+    logger.info(f"Finalizing chapter {index + 1}: {chapter_info['titre']}")
     
     new_chapter: Chapter = {
         "numero": chapter_info["numero"],
