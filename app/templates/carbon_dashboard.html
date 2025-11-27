@@ -1,0 +1,391 @@
+{% extends "base.html" %} {% block title %}Mon Empreinte Carbone - Ether
+Stories{% endblock %} {% block content %}
+<div class="container mt-4">
+  <!-- Header -->
+  <div class="text-center mb-5">
+    <h1 class="display-5 text-magical-gold">
+      <i class="bi bi-leaf"></i> Mon Empreinte Carbone
+    </h1>
+    <p class="hero-subtitle" style="font-size: 1.1rem">
+      Suivez l'impact environnemental de vos histoires magiques
+    </p>
+  </div>
+
+  <!-- Main Stats Cards -->
+  <div class="row g-4 mb-5">
+    <!-- Total CO2 -->
+    <div class="col-md-4">
+      <div class="card h-100 text-center">
+        <div class="card-body py-4">
+          <div class="mb-3">
+            <i
+              class="bi bi-cloud"
+              style="font-size: 3rem; color: var(--magic-cyan)"
+            ></i>
+          </div>
+          <h2 class="display-4 text-magical-gold" id="totalCO2">
+            {{ "%.4f"|format(stats.total_emissions_kg * 1000) }}
+          </h2>
+          <p class="text-muted mb-0">grammes de CO₂</p>
+          <small class="text-muted">Total émis</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Energy -->
+    <div class="col-md-4">
+      <div class="card h-100 text-center">
+        <div class="card-body py-4">
+          <div class="mb-3">
+            <i
+              class="bi bi-lightning-charge"
+              style="font-size: 3rem; color: var(--magic-gold)"
+            ></i>
+          </div>
+          <h2 class="display-4 text-magical-gold">
+            {{ "%.6f"|format(stats.total_energy_kwh) }}
+          </h2>
+          <p class="text-muted mb-0">kWh</p>
+          <small class="text-muted">Énergie consommée</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total Operations -->
+    <div class="col-md-4">
+      <div class="card h-100 text-center">
+        <div class="card-body py-4">
+          <div class="mb-3">
+            <i
+              class="bi bi-activity"
+              style="font-size: 3rem; color: var(--magic-pink)"
+            ></i>
+          </div>
+          <h2 class="display-4 text-magical-gold">
+            {{ stats.total_operations }}
+          </h2>
+          <p class="text-muted mb-0">opérations</p>
+          <small class="text-muted">Histoires générées</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Equivalences Section -->
+  <div class="row mb-5">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <h4 class="card-title mb-4">
+            <i class="bi bi-calculator"></i> Ça représente quoi ?
+          </h4>
+          <div class="row g-3">
+            <div class="col-6 col-md-4 col-lg-2">
+              <div
+                class="text-center p-3 rounded"
+                style="background: rgba(255, 215, 0, 0.1)"
+              >
+                <div style="font-size: 2rem">🚗</div>
+                <div class="fw-bold text-magical-gold">
+                  {{ stats.equivalences.km_by_car }}
+                </div>
+                <small class="text-muted">km en voiture</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+              <div
+                class="text-center p-3 rounded"
+                style="background: rgba(255, 107, 157, 0.1)"
+              >
+                <div style="font-size: 2rem">📱</div>
+                <div class="fw-bold text-magical-pink">
+                  {{ stats.equivalences.smartphone_charges }}
+                </div>
+                <small class="text-muted">charges de tel</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+              <div
+                class="text-center p-3 rounded"
+                style="background: rgba(0, 212, 255, 0.1)"
+              >
+                <div style="font-size: 2rem">📺</div>
+                <div class="fw-bold" style="color: var(--magic-cyan)">
+                  {{ stats.equivalences.hours_of_tv }}
+                </div>
+                <small class="text-muted">heures de TV</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+              <div
+                class="text-center p-3 rounded"
+                style="background: rgba(255, 215, 0, 0.1)"
+              >
+                <div style="font-size: 2rem">☕</div>
+                <div class="fw-bold text-magical-gold">
+                  {{ stats.equivalences.cups_of_coffee }}
+                </div>
+                <small class="text-muted">tasses de café</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+              <div
+                class="text-center p-3 rounded"
+                style="background: rgba(255, 107, 157, 0.1)"
+              >
+                <div style="font-size: 2rem">🔍</div>
+                <div class="fw-bold text-magical-pink">
+                  {{ stats.equivalences.google_searches|int }}
+                </div>
+                <small class="text-muted">recherches Google</small>
+              </div>
+            </div>
+            <div class="col-6 col-md-4 col-lg-2">
+              <div
+                class="text-center p-3 rounded"
+                style="background: rgba(0, 200, 83, 0.1)"
+              >
+                <div style="font-size: 2rem">🌳</div>
+                <div class="fw-bold" style="color: #00c853">
+                  {{ stats.equivalences.trees_absorbed_daily }}
+                </div>
+                <small class="text-muted">jours d'arbre</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Breakdown by Operation -->
+  <div class="row g-4 mb-5">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h4 class="card-title mb-4">
+            <i class="bi bi-pie-chart"></i> Par type d'opération
+          </h4>
+          {% if stats.breakdown %}
+          <div class="list-group list-group-flush">
+            {% if 'story_generation' in stats.breakdown %}
+            <div
+              class="list-group-item d-flex justify-content-between align-items-center"
+              style="background: transparent"
+            >
+              <span><i class="bi bi-book"></i> Génération d'histoires</span>
+              <div>
+                <span class="badge bg-primary"
+                  >{{ stats.breakdown.story_generation.count }} fois</span
+                >
+                <span class="badge bg-info"
+                  >{{
+                  "%.4f"|format(stats.breakdown.story_generation.emissions_kg *
+                  1000) }}g</span
+                >
+              </div>
+            </div>
+            {% endif %} {% if 'translation' in stats.breakdown %}
+            <div
+              class="list-group-item d-flex justify-content-between align-items-center"
+              style="background: transparent"
+            >
+              <span><i class="bi bi-translate"></i> Traductions</span>
+              <div>
+                <span class="badge bg-primary"
+                  >{{ stats.breakdown.translation.count }} fois</span
+                >
+                <span class="badge bg-info"
+                  >{{ "%.4f"|format(stats.breakdown.translation.emissions_kg *
+                  1000) }}g</span
+                >
+              </div>
+            </div>
+            {% endif %} {% if 'tts' in stats.breakdown %}
+            <div
+              class="list-group-item d-flex justify-content-between align-items-center"
+              style="background: transparent"
+            >
+              <span><i class="bi bi-volume-up"></i> Audio (TTS)</span>
+              <div>
+                <span class="badge bg-primary"
+                  >{{ stats.breakdown.tts.count }} fois</span
+                >
+                <span class="badge bg-info"
+                  >{{ "%.4f"|format(stats.breakdown.tts.emissions_kg * 1000)
+                  }}g</span
+                >
+              </div>
+            </div>
+            {% endif %} {% if 'image_generation' in stats.breakdown %}
+            <div
+              class="list-group-item d-flex justify-content-between align-items-center"
+              style="background: transparent"
+            >
+              <span><i class="bi bi-image"></i> Images</span>
+              <div>
+                <span class="badge bg-primary"
+                  >{{ stats.breakdown.image_generation.count }} fois</span
+                >
+                <span class="badge bg-info"
+                  >{{
+                  "%.4f"|format(stats.breakdown.image_generation.emissions_kg *
+                  1000) }}g</span
+                >
+              </div>
+            </div>
+            {% endif %}
+          </div>
+          {% else %}
+          <p class="text-muted text-center py-4">
+            <i class="bi bi-inbox" style="font-size: 2rem"></i><br />
+            Pas encore de données
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h4 class="card-title mb-4">
+            <i class="bi bi-clock-history"></i> Activité récente
+          </h4>
+          {% if stats.recent %}
+          <div class="list-group list-group-flush">
+            {% for emission in stats.recent %}
+            <div
+              class="list-group-item d-flex justify-content-between align-items-center"
+              style="background: transparent"
+            >
+              <div>
+                <span
+                  class="badge {% if emission.operation_type == 'story_generation' %}bg-primary {% elif emission.operation_type == 'translation' %}bg-info {% elif emission.operation_type == 'tts' %}bg-success {% else %}bg-secondary{% endif %}"
+                >
+                  {% if emission.operation_type == 'story_generation' %}<i
+                    class="bi bi-book"
+                  ></i>
+                  {% elif emission.operation_type == 'translation' %}<i
+                    class="bi bi-translate"
+                  ></i>
+                  {% elif emission.operation_type == 'tts' %}<i
+                    class="bi bi-volume-up"
+                  ></i>
+                  {% elif emission.operation_type == 'image_generation' %}<i
+                    class="bi bi-image"
+                  ></i>
+                  {% endif %}
+                </span>
+                <small class="text-muted ms-2"
+                  >{{ emission.created_at[:10] }}</small
+                >
+              </div>
+              <span class="text-magical-gold fw-bold"
+                >{{ "%.4f"|format(emission.emissions_kg * 1000) }}g</span
+              >
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted text-center py-4">
+            <i class="bi bi-inbox" style="font-size: 2rem"></i><br />
+            Pas encore d'activité
+          </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Eco Tips -->
+  <div class="row mb-5">
+    <div class="col-12">
+      <div
+        class="card"
+        style="
+          background: linear-gradient(
+            135deg,
+            rgba(0, 200, 83, 0.1),
+            rgba(0, 212, 255, 0.1)
+          );
+        "
+      >
+        <div class="card-body">
+          <h4 class="card-title mb-3">
+            <i class="bi bi-lightbulb"></i> Conseils éco-responsables
+          </h4>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="d-flex align-items-start mb-3">
+                <span class="me-3" style="font-size: 1.5rem">💡</span>
+                <div>
+                  <strong>Histoires plus courtes</strong>
+                  <p class="text-muted small mb-0">
+                    Des histoires de 3-5 minutes consomment moins d'énergie
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-flex align-items-start mb-3">
+                <span class="me-3" style="font-size: 1.5rem">🔄</span>
+                <div>
+                  <strong>Réutilisez vos histoires</strong>
+                  <p class="text-muted small mb-0">
+                    Relisez vos anciennes histoires avant d'en créer
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="d-flex align-items-start mb-3">
+                <span class="me-3" style="font-size: 1.5rem">🌍</span>
+                <div>
+                  <strong>Partagez</strong>
+                  <p class="text-muted small mb-0">
+                    Une histoire peut être lue par plusieurs enfants !
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="text-center mb-5">
+    <a href="/my-stories" class="btn btn-outline-magical btn-lg me-2">
+      <i class="bi bi-book"></i> Mes Histoires
+    </a>
+    <a href="/create" class="btn btn-magical-primary btn-lg">
+      <i class="bi bi-stars"></i> Créer une histoire
+    </a>
+  </div>
+</div>
+
+<script>
+  // Animate the CO2 counter on page load
+  document.addEventListener('DOMContentLoaded', function () {
+    const co2Element = document.getElementById('totalCO2');
+    const targetValue = parseFloat(co2Element.textContent);
+    let currentValue = 0;
+    const duration = 1500; // ms
+    const steps = 60;
+    const increment = targetValue / steps;
+    const stepDuration = duration / steps;
+
+    const counter = setInterval(() => {
+      currentValue += increment;
+      if (currentValue >= targetValue) {
+        currentValue = targetValue;
+        clearInterval(counter);
+      }
+      co2Element.textContent = currentValue.toFixed(4);
+    }, stepDuration);
+  });
+</script>
+{% endblock %}

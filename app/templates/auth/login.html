@@ -1,23 +1,39 @@
-{% extends "base.html" %} {% block title %}Connexion - Ether Stories{% endblock %}
-{% block content %}
+{% extends "base.html" %} {% block title %}Connexion - Ether Stories{% endblock
+%} {% block content %}
 <div class="row justify-content-center mt-4">
   <div class="col-md-5 col-lg-4">
     <div class="card shadow-lg">
       <div class="card-body p-4">
         <div class="text-center mb-4">
-          <span style="font-size: 3rem;">🏰</span>
+          <span style="font-size: 3rem">🏰</span>
           <h3 class="card-title mt-2">Bon retour !</h3>
           <p class="text-muted">Connectez-vous pour continuer l'aventure</p>
         </div>
-        
+
         <form id="loginForm">
           <div class="mb-4">
-            <label class="form-label"><i class="bi bi-envelope"></i> Email</label>
-            <input type="email" class="form-control" id="email" placeholder="votre@email.com" required />
+            <label class="form-label"
+              ><i class="bi bi-envelope"></i> Email</label
+            >
+            <input
+              type="email"
+              class="form-control"
+              id="email"
+              placeholder="votre@email.com"
+              required
+            />
           </div>
           <div class="mb-4">
-            <label class="form-label"><i class="bi bi-lock"></i> Mot de passe</label>
-            <input type="password" class="form-control" id="password" placeholder="••••••••" required />
+            <label class="form-label"
+              ><i class="bi bi-lock"></i> Mot de passe</label
+            >
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              placeholder="••••••••"
+              required
+            />
           </div>
           <div class="d-grid">
             <button type="submit" class="btn btn-magical-primary btn-lg">
@@ -25,12 +41,14 @@
             </button>
           </div>
         </form>
-        
+
         <div id="alert" class="alert alert-danger mt-3 d-none"></div>
-        
+
         <p class="text-center mt-4 mb-0">
           <span class="text-muted">Pas encore de compte ?</span>
-          <a href="/signup" class="text-magical-gold fw-bold">Créer un compte</a>
+          <a href="/signup" class="text-magical-gold fw-bold"
+            >Créer un compte</a
+          >
         </p>
       </div>
     </div>
